@@ -2,6 +2,10 @@
 
 DevCycleSim is a Python-based simulation framework designed to model agile development processes. It simulates iterative sprints where work items flow through Specification, Development, Testing, and Rollout phases—with built-in error handling and rework dynamics—to help you understand process interdependencies and effectively transfer these insights into practice.
 
+## Idea
+
+The simulation represents the software development process as a factory where orders (features/modules) pass through different production stations. Orders have varying sizes, measured in story points, which determine the duration each order remains in the Specification, Development, and Testing phases. Additionally, "errors" are simulated that can cause an order to be sent back (for example, from Testing back to Development). The entire process is divided into agile sprints (each consisting of 10 workdays), and various scenarios can be configured—for instance, determining when the Testing phase becomes active and how multiple teams work together in synchronized phases such as Testing and Rollout.
+
 ## Overview
 
 The framework simulates an agile workflow where each work item (order) goes through the following steps:
