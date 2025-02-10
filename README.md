@@ -150,5 +150,69 @@ Each specialized machine inherits from the base **Machine** class and can overri
   
 This detailed model provides a clear blueprint for simulating an agile development process with realistic constraints (e.g., FTE capacity and sequential phase progression). Each user story carries its specific phase durations, and each machine processes these stories one takt (day) at a time within a sprint framework.
 
+## Class diagram
+
+```mermaid
+classDiagram
+    class UserStory {
+      - string id
+      - int arrival_day
+      - dict phase_durations
+      - string current_phase
+      - int remaining_days
+      - string status
+      + update_progress()
+      + advance_phase()
+      + is_complete() bool
+      + reset_phase()
+    }
+
+    class Machine {
+      - string name
+      - int capacity
+      - list queue
+      - list active_stories
+      + enqueue(user_story)
+      + start_processing()
+      + process_takt()
+      + complete_stories()
+      + simulate_error()
+    }
+
+    class SpecificationMachine {
+      + process_takt()
+    }
+
+    class DevelopmentMachine {
+      + process_takt()
+    }
+
+    class TestingMachine {
+      + process_takt()
+    }
+
+    class RolloutMachine {
+      + process_takt()
+    }
+
+    class Simulation {
+      - int current_day
+      - int sprint_number
+      - list user_stories
+      - dict machines
+      + run()
+      + process_day()
+      + generate_new_user_stories()
+      + print_statistics()
+    }
+
+    Machine <|-- SpecificationMachine
+    Machine <|-- DevelopmentMachine
+    Machine <|-- TestingMachine
+    Machine <|-- RolloutMachine
+
+    Simulation --> UserStory
+    Simulation --> Machine
+```
 
 
