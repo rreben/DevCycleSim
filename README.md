@@ -215,4 +215,47 @@ classDiagram
     Simulation --> Machine
 ```
 
+## Flowchart
+
+
+```mermaid
+flowchart TD
+    A[User Story Created]
+    
+    B[Specification Buffer]
+    C[Specification Processing]
+    D{Specification Complete?}
+    
+    E[Development Buffer]
+    F[Development Processing]
+    G{Development Complete?}
+    
+    H[Testing Buffer]
+    I[Testing Processing]
+    J{Testing Complete?}
+    
+    K[Rollout Buffer]
+    L[Rollout Processing]
+    M[User Story Completed]
+    
+    A --> B
+    B --> C
+    C --> D
+    D -- Yes --> E
+    D -- No --> C
+    
+    E --> F
+    F --> G
+    G -- Yes --> H
+    G -- No --> F
+    
+    H --> I
+    I --> J
+    J -- Yes --> K
+    J -- No --> I
+    
+    K --> L
+    L --> M
+```
+
 
