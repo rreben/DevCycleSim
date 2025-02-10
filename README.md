@@ -10,222 +10,145 @@ A key aspect is that a user story cannot move to the next phase until its curren
 
 This detailed modeling allows for the exploration of resource constraints and process dynamics, providing valuable insights into how agile practices can be practically applied. The entire process is divided into agile sprints (each consisting of 10 workdays), and various scenarios can be configured—for example, determining when the Testing phase becomes active or how multiple teams synchronize in phases like Testing and Rollout.
 
-## Overview
+## DevCycleSim Detailed Model
 
-The framework simulates an agile workflow where each work item (order) goes through the following steps:
+Below is a more detailed model outlining the most important attributes and functions for both a **UserStory** and a **Machine** (with specialized machines for Specification, Development, Testing, and Rollout). In this model, time is measured in "takt" (days), and days are organized into sprints.
 
-- **Specification:**  
-  In the first three sprint days, work items are specified. New orders are generated on the first day of a sprint and enqueued in the Specification queue.
+### UserStory
 
-- **Development:**  
-  From sprint day 4 onward, orders are processed in the Development phase. A 10% chance of error is simulated; if an error occurs, the order is re-queued into development.
+**Attributes:**  
 
-- **Testing:**  
-  In every third sprint (from day 9 onward), orders are tested. If the tests fail, the order is sent back to Development.
+- **id**  
+  A unique identifier for the user story.
 
-- **Rollout:**  
-  On the final day of a sprint (day 10), the order is finalized and completed.
+- **arrival_day**  
+  The day when the user story is introduced into the system.
 
-After the simulation, key metrics such as lead time, total processing time, and waiting time are displayed.
+- **phase_durations**  
+  A dictionary (or individual attributes) mapping each phase to the number of days required. For example:
 
-## Features
+  ```python
+  {
+      "spec": 1,
+      "dev": 2,
+      "test": 1,
+      "rollout": 1
+  }
+  ```
 
-- **Order Objects:**  
-  Each order includes:
-  - `order_id`, `arrival_day`, `size` (story points)
-  - `current_station`, `status`
-  - `total_process_time` and `total_waiting_time`
-  - `completed_day` and `has_error`
-  - `dependencies` and a dictionary `remaining_work` (tracking remaining work for each phase: spec, dev, test, rollout)
+- **current_phase**  
+  A string representing the current phase (e.g., "spec", "dev", "test", or "rollout").
 
-- **Stations (Machines):**  
-  The framework includes four specialized machine classes:
-  - `SpecificationMachine`
-  - `DevelopmentMachine`
-  - `TestMachine`
-  - `RolloutMachine`
+- **remaining_days**  
+  The number of days remaining for the current phase. Initialized from the corresponding value in `phase_durations`.
 
-- **Agile Sprints:**  
-  The simulation runs in sprints of 10 working days. New orders are created at the start of each sprint.
+- **status**  
+  The overall status of the user story (e.g., "pending", "in progress", "completed", "error").
 
-- **Error Handling:**  
-  Errors are simulated during development (10% chance). On error, orders are re-queued with reset work.
+  
+**Functions:**  
 
-- **Statistics:**  
-  At the end, all completed orders and their metrics (lead time, processing time, waiting time) are displayed.
+- **update_progress()**  
+  *Description:* Decrement the `remaining_days` for the current phase by one takt (day).
 
-## Project Structure
+- **advance_phase()**  
+  *Description:* When `remaining_days` reaches zero, move the user story to the next phase and reset `remaining_days` using the next phase’s duration.
 
-- **`simulation.py`:**  
-  Contains the main driver that cycles through sprints and days, generates new orders, coordinates the workflow, and prints statistics.
+- **is_complete()**  
+  *Description:* Check if all phases are completed; returns `True` if the user story has passed through all phases.
 
-- **`Order` Class:**  
-  Models a work item with all relevant attributes.
+- **reset_phase()**  
+  *Description:* In case of an error or rework, reset the `remaining_days` for the current phase to its full duration.
 
-- **`Machine` Class (and specialized subclasses):**  
-  Provides the base class for machines as well as the specialized classes:
-  - `SpecificationMachine`
-  - `DevelopmentMachine`
-  - `TestMachine`
-  - `RolloutMachine`
+  
+### Machine
 
-- **`Team` Class:**  
-  Coordinates the machines and manages the handover between phases.
+Each machine represents a production station (phase) in the simulation (e.g., Specification, Development, Testing, Rollout).
 
-- **`Sprint` Class:**  
-  Models a sprint (default: 10 working days).
+**Common Attributes:**  
 
-## Simulation Flow
+- **name**  
+  The name of the machine (e.g., "Specification", "Development").
 
-1. **Generating New Orders:**  
-   - On the first day of a sprint, 2 to 5 new orders are generated with a random size (3 to 8 story points) and added to the SpecificationMachine's queue.
+- **capacity**  
+  The maximum number of user stories (FTEs) that can be processed concurrently. For example, a Specification Machine with 4 FTEs can work on 4 user stories at the same time.
 
-2. **Processing in the Phases:**  
-   - **Specification:** Processed during sprint days 1–3.
-   - **Development:** Processed from sprint day 4 onward. If an error occurs, the order is re-queued.
-   - **Testing:** In every third sprint (from day 9), orders are tested. On failure, orders are sent back to Development.
-   - **Rollout:** On day 10, orders are finalized.
+- **queue**  
+  A FIFO list of user stories waiting to be processed.
 
-3. **Phase Transitions:**  
-   - After Specification, the development work (`remaining_work["dev"]`) is set to the order's size, and the order is enqueued in the DevelopmentMachine.
-   - Similar transitions occur from Development to Testing and from Testing to Rollout.
-   - In case of errors, the work for the respective phase is reset.
+- **active_stories**  
+  A list of user stories that are currently being processed by the machine (up to its capacity).
 
-4. **Evaluation:**  
-   - After the simulation, all completed orders and their metrics are displayed.
+  
+**Common Functions:**  
 
-## Diagrams
+- **enqueue(user_story)**  
+  *Description:* Add a user story to the machine’s queue.
 
-### UML Class Diagram
+- **start_processing()**  
+  *Description:* Move user stories from the queue into `active_stories` if there is available capacity.
 
-The diagram below shows the class structure and relationships among the main components:
+- **process_takt()**  
+  *Description:* For one takt (day), process all active user stories by decrementing their `remaining_days`.  
+  *Note:* If a user story’s `remaining_days` reaches zero, it should be marked as completed for that phase.
 
-```mermaid
-classDiagram
-    %% Simulation
-    class Simulation {
-      - int total_sprints
-      - int current_day
-      - list orders
-      - list completed_orders
-      - Team team
-      + run()
-      + generate_new_orders(current_sprint, sprint_day)
-      + print_statistics()
-    }
+- **complete_stories()**  
+  *Description:* Identify user stories that have completed the current phase and prepare them for transition to the next phase (e.g., by invoking their `advance_phase()` method).
 
-    %% Team
-    class Team {
-      - int team_id
-      - dict machines
-      + process_day(current_day, sprint_day, sprint_number)
-    }
+- **simulate_error()** (For Development and Testing machines)  
+  *Description:* Randomly determine if an error occurs, which might trigger a reset of the current phase (using `reset_phase()`) and a re-queue into the same or a previous phase (for rework).
 
-    %% Base Machine Class
-    class Machine {
-      - str name
-      - int daily_capacity
-      - list queue
-      + enqueue(order, current_day)
-      + process_orders(current_day)
-    }
+  
+### Specialized Machines
 
-    %% Specialized Machines
-    class SpecificationMachine {
-      + process_orders(current_day)
-    }
-    class DevelopmentMachine {
-      + process_orders(current_day)
-    }
-    class TestMachine {
-      + process_orders(current_day)
-    }
-    class RolloutMachine {
-      + process_orders(current_day)
-    }
+Each specialized machine inherits from the base **Machine** class and can override or extend its functions.
 
-    %% Order
-    class Order {
-      - str order_id
-      - int arrival_day
-      - int size
-      - str current_station
-      - str status
-      - float total_process_time
-      - int total_waiting_time
-      - int completed_day
-      - bool has_error
-      - list dependencies
-      - dict remaining_work
-      + __str__()
-    }
+- **SpecificationMachine**  
+  *Behavior:* Processes user stories without simulating errors. Simply decrements the `remaining_days` in the Specification phase.
 
-    %% Sprint
-    class Sprint {
-      - int sprint_number
-      - int days
-    }
+- **DevelopmentMachine**  
+  *Behavior:* Processes the Development phase and may simulate errors. On an error, a user story is re-queued with its Development duration reset.
 
-    %% Relationships
-    Simulation --> Team
-    Team --> Machine : contains (machines)
-    Machine <|-- SpecificationMachine
-    Machine <|-- DevelopmentMachine
-    Machine <|-- TestMachine
-    Machine <|-- RolloutMachine
-    Simulation --> Order
-    Simulation --> Sprint
-```
+- **TestingMachine**  
+  *Behavior:* Processes the Testing phase and checks for errors. If a user story fails the test, it is sent back to the Development phase (with appropriate rework).
 
-### Flowchart (Order Flow)
+- **RolloutMachine**  
+  *Behavior:* Finalizes the user story. Once processing is complete, the user story is marked as completed.
 
-This diagram visualizes the journey of an order from creation to completion:
+  
+### Simulation (Overall Controller)
 
-```mermaid
-flowchart TD
-    A["Order creation in Simulation.generate_new_orders: Sprint Day 1"]
-    B["Order enqueued into the Specification queue"]
-    C["Team.process_day: Specification phase (sprint_day <= 3)"]
-    D["SpecificationMachine.process_orders"]
-    E["Order completed in Specification"]
-    F["Set order.remaining_work[dev] = order.size"]
-    G["Enqueue order into DevelopmentMachine.queue"]
-    H["Team.process_day: Development phase (sprint_day >= 4)"]
-    I["DevelopmentMachine.process_orders"]
-    J{"Error in Development?"}
-    K["Re-enqueue order in Dev queue"]
-    L["Set order.remaining_work[test] = order.size"]
-    M["Enqueue order into TestMachine.queue"]
-    N["Team.process_day: Testing phase (in every 3rd sprint, sprint_day >= 9)"]
-    O["TestMachine.process_orders"]
-    P{"Test passed?"}
-    Q["Set order.remaining_work[rollout] = order.size"]
-    R["Enqueue order into RolloutMachine.queue"]
-    S["Team.process_day: Rollout phase (sprint_day == 10)"]
-    T["RolloutMachine.process_orders"]
-    U["Order completed and added to completed_orders"]
+**Attributes:**  
 
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    G --> H
-    H --> I
-    I --> J
-    J -- "Yes" --> K
-    J -- "No" --> L
-    L --> M
-    M --> N
-    N --> O
-    O --> P
-    P -- "No" --> K
-    P -- "Yes" --> Q
-    Q --> R
-    R --> S
-    S --> T
-    T --> U
-```
+- **current_day**  
+  The current day in the simulation.
+
+- **sprint_number**  
+  The current sprint number (each sprint could be, for example, 10 workdays).
+
+- **user_stories**  
+  A list of all user stories in the simulation.
+
+- **machines**  
+  A dictionary mapping phase names (e.g., "spec", "dev", "test", "rollout") to their corresponding machine objects.
+
+  
+**Functions:**  
+
+- **run()**  
+  *Description:* The main simulation loop that iterates through sprints and days, processes user stories across machines, and advances time.
+
+- **process_day()**  
+  *Description:* For each day (takt), instruct each machine to perform its `process_takt()` function and handle transitions between phases.
+
+- **generate_new_user_stories()**  
+  *Description:* Create and enqueue new user stories at the start of each sprint with predefined phase durations.
+
+- **print_statistics()**  
+  *Description:* Summarize and display key metrics (such as lead time, total processing time, etc.) at the end of the simulation.
+
+  
+This detailed model provides a clear blueprint for simulating an agile development process with realistic constraints (e.g., FTE capacity and sequential phase progression). Each user story carries its specific phase durations, and each machine processes these stories one takt (day) at a time within a sprint framework.
+
 
 
