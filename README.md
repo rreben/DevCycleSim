@@ -1,10 +1,14 @@
 # DevCycleSim
 
-DevCycleSim is a Python-based simulation framework designed to model agile development processes. It simulates iterative sprints where work items flow through Specification, Development, Testing, and Rollout phases—with built-in error handling and rework dynamics—to help you understand process interdependencies and effectively transfer these insights into practice.
+DevCycleSim is a Python-based simulation framework designed to model agile development processes. It simulates iterative sprints where work items (user stories) flow through Specification, Development, Testing, and Rollout phases—with built-in error handling and rework dynamics—to help you understand process interdependencies and effectively transfer these insights into practice.
 
 ## Idea
 
-The simulation represents the software development process as a factory where orders (features/modules) pass through different production stations. Orders have varying sizes, measured in story points, which determine the duration each order remains in the Specification, Development, and Testing phases. Additionally, "errors" are simulated that can cause an order to be sent back (for example, from Testing back to Development). The entire process is divided into agile sprints (each consisting of 10 workdays), and various scenarios can be configured—for instance, determining when the Testing phase becomes active and how multiple teams work together in synchronized phases such as Testing and Rollout.
+The simulation represents the software development process as a factory where user stories (features/modules) pass through different production stations. Each user story comes with specified durations—in days—for the Specification, Development, Testing, and Rollout phases. For example, one user story might require 1 day for Specification, 2 days for Development, 1 day for Testing, and 1 day for Rollout, while another might require 3, 9, 4, and 1 days, respectively.
+
+A key aspect is that a user story cannot move to the next phase until its current phase is fully completed. In the Specification phase, each person can only work on one user story at a time. Thus, if a user story requires 3 days of Specification, it will occupy one full-time equivalent (FTE) for those 3 days. With a capacity of 4 FTE in the "Specification Machine," up to 4 user stories can be processed concurrently in that phase.
+
+This detailed modeling allows for the exploration of resource constraints and process dynamics, providing valuable insights into how agile practices can be practically applied. The entire process is divided into agile sprints (each consisting of 10 workdays), and various scenarios can be configured—for example, determining when the Testing phase becomes active or how multiple teams synchronize in phases like Testing and Rollout.
 
 ## Overview
 
