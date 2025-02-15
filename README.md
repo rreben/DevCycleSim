@@ -45,7 +45,6 @@ Below is a more detailed model outlining the most important attributes and funct
 - **status**  
   The overall status of the user story (e.g., "pending", "in progress", "completed", "error").
 
-  
 **Functions:**  
 
 - **update_progress()**  
@@ -60,7 +59,6 @@ Below is a more detailed model outlining the most important attributes and funct
 - **reset_phase()**  
   *Description:* In case of an error or rework, reset the `remaining_days` for the current phase to its full duration.
 
-  
 ### Machine
 
 Each machine represents a production station (phase) in the simulation (e.g., Specification, Development, Testing, Rollout).
@@ -79,7 +77,6 @@ Each machine represents a production station (phase) in the simulation (e.g., Sp
 - **active_stories**  
   A list of user stories that are currently being processed by the machine (up to its capacity).
 
-  
 **Common Functions:**  
 
 - **enqueue(user_story)**  
@@ -98,7 +95,6 @@ Each machine represents a production station (phase) in the simulation (e.g., Sp
 - **simulate_error()** (For Development and Testing machines)  
   *Description:* Randomly determine if an error occurs, which might trigger a reset of the current phase (using `reset_phase()`) and a re-queue into the same or a previous phase (for rework).
 
-  
 ### Specialized Machines
 
 Each specialized machine inherits from the base **Machine** class and can override or extend its functions.
@@ -115,7 +111,6 @@ Each specialized machine inherits from the base **Machine** class and can overri
 - **RolloutMachine**  
   *Behavior:* Finalizes the user story. Once processing is complete, the user story is marked as completed.
 
-  
 ### Simulation (Overall Controller)
 
 **Attributes:**  
@@ -132,7 +127,6 @@ Each specialized machine inherits from the base **Machine** class and can overri
 - **machines**  
   A dictionary mapping phase names (e.g., "spec", "dev", "test", "rollout") to their corresponding machine objects.
 
-  
 **Functions:**  
 
 - **run()**  
@@ -147,7 +141,6 @@ Each specialized machine inherits from the base **Machine** class and can overri
 - **print_statistics()**  
   *Description:* Summarize and display key metrics (such as lead time, total processing time, etc.) at the end of the simulation.
 
-  
 This detailed model provides a clear blueprint for simulating an agile development process with realistic constraints (e.g., FTE capacity and sequential phase progression). Each user story carries its specific phase durations, and each machine processes these stories one takt (day) at a time within a sprint framework.
 
 ## Class diagram
@@ -217,7 +210,6 @@ classDiagram
 
 ## Flowchart
 
-
 ```mermaid
 flowchart TD
     A[User Story Created]
@@ -257,5 +249,3 @@ flowchart TD
     K --> L
     L --> M
 ```
-
-
