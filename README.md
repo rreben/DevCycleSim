@@ -249,3 +249,19 @@ flowchart TD
     K --> L
     L --> M
 ```
+
+## Installation
+
+Die Abhängigkeiten können mit `uv` installiert werden. `uv` ist ein schneller Paketmanager für Python, der `pip` ersetzt:
+
+### Installation der Abhängigkeiten
+
+```bash
+uv pip install -r requirements.txt
+```
+
+Alternativ kann auch `pip` verwendet werden:
+
+```bash
+pip install -r requirements.txt
+```

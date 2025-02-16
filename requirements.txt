@@ -1,0 +1,16 @@
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Code Quality
+black>=23.7.0
+mypy>=1.5.0
+flake8>=6.1.0
+isort>=5.12.0
+
+# Type Checking
+types-setuptools>=68.0.0
+
+# Optional: für die Visualisierung später
+matplotlib>=3.7.0
+seaborn>=0.12.0 
