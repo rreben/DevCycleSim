@@ -1,0 +1,13 @@
+---
+description: This is helpful for formatting python files, so that there is not so much rework necessary
+globs: *.py
+---
+
+# Your rule content
+
+- All python files shoud be formatted according to PEP8
+- Especially lines should not be longer than 79 characters
+- Especially there should be one empty lines for each function definitions
+- Especially there should not be empty lines with blank or tab characters.
+- Remove all blanks in lines that do not have any other characters.
+
