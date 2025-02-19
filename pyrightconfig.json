@@ -1,0 +1,12 @@
+{
+    "include": [
+        "devcyclesim"
+    ],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__"
+    ],
+    "pythonVersion": "3.8",
+    "pythonPlatform": "All",
+    "typeCheckingMode": "basic"
+} 
