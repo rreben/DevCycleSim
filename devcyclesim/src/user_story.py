@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Optional
 
@@ -40,20 +40,34 @@ class StoryPhase(Enum):
 
 class StoryStatus(Enum):
     PENDING = "pending"      # Wartet auf Bearbeitung
-    IN_PROGRESS = "active"   # Wird gerade bearbeitet
+    IN_PROGRESS = "in_progress"   # Wird gerade bearbeitet
     BLOCKED = "blocked"      # Blockiert/Wartet auf andere Story
     DONE = "done"           # Fertig
 
 
 @dataclass
+class StoryErrors:
+    """Contains information about potential errors in a story"""
+    # Requires extra debug day in development
+    has_dev_debug_needed: bool = False
+    # Requires revision in specification
+    has_spec_revision_needed: bool = False
+
+
+@dataclass
 class UserStory:
     story_id: str
-    arrival_day: int
-    priority: int = 1  # Niedrigere Zahlen bedeuten höhere Priorität
-    size_factor: float = 1.0  # Skalierungsfaktor für die Story-Größe
-    phase_durations: Optional[Dict[str, int]] = None
+    phase_durations: Dict[str, int]
+    arrival_day: int = 1
+    priority: int = 1
+    size_factor: float = 1.0
+    errors: StoryErrors = field(default_factory=StoryErrors)
+    current_phase: StoryPhase = field(default=StoryPhase.SPEC)
+    status: StoryStatus = field(default=StoryStatus.PENDING)
+    remaining_days: int = field(init=False)
 
     def __post_init__(self):
+        """Initialize remaining days based on current phase duration."""
         # Validierung der Eingabeparameter
         if self.priority <= 0:
             raise ValueError("Priorität muss positiv sein")
@@ -62,35 +76,18 @@ class UserStory:
         if self.size_factor <= 0:
             raise ValueError("Größenfaktor muss positiv sein")
 
-        # Validierung der Phasendauern, falls angegeben
-        if self.phase_durations is not None:
-            # Erst prüfen, ob Dauern positiv sind
-            if any(d <= 0 for d in self.phase_durations.values()):
-                raise ValueError("Alle Phasendauern müssen positiv sein")
+        # Validierung der Phasendauern
+        # Zuerst prüfen wir die Werte der vorhandenen Phasen
+        if any(duration <= 0 for duration in self.phase_durations.values()):
+            raise ValueError("Alle Phasendauern müssen positiv sein")
 
-            # Dann prüfen, ob alle Phasen vorhanden sind
-            required_phases = {phase.value for phase in StoryPhase}
-            if not all(
-                phase in self.phase_durations for phase in required_phases
-            ):
-                raise ValueError("Alle Phasen müssen definiert sein")
+        # Dann prüfen wir, ob alle erforderlichen Phasen vorhanden sind
+        required_phases = {phase.value for phase in StoryPhase}
+        if not all(phase in self.phase_durations for phase in required_phases):
+            raise ValueError("Alle Phasen müssen definiert sein")
 
-        self.current_phase: StoryPhase = StoryPhase.SPEC
-        self.status: StoryStatus = StoryStatus.PENDING
-
-        # Falls keine spezifischen Dauern angegeben wurden, verwende die
-        # Standardwerte
-        if self.phase_durations is None:
-            base_durations = StoryPhase.get_default_durations()
-            self.phase_durations = {
-                phase: int(duration * self.size_factor)
-                for phase, duration in base_durations.items()
-            }
-
-        self.remaining_days: int = (
-            self.phase_durations[self.current_phase.value])
-        self.total_wait_time: int = 0
-        self.completion_day: Optional[int] = None
+        # Initialisierung der remaining_days
+        self.remaining_days = self.phase_durations[self.current_phase.value]
 
     def process_day(self) -> bool:
         """
@@ -100,7 +97,6 @@ class UserStory:
             bool: True wenn die aktuelle Phase abgeschlossen wurde, sonst False
         """
         if self.status != StoryStatus.IN_PROGRESS:
-            self.total_wait_time += 1
             return False
 
         self.remaining_days -= 1
@@ -124,7 +120,10 @@ class UserStory:
             return True
 
         # Ansonsten gehen wir zur nächsten Phase
-        self.current_phase = StoryPhase.get_next_phase(self.current_phase)
+        next_phase = StoryPhase.get_next_phase(self.current_phase)
+        if next_phase is None:
+            return True
+        self.current_phase = next_phase
         self.remaining_days = self.phase_durations[self.current_phase.value]
         self.status = StoryStatus.PENDING
         return False
@@ -139,10 +138,13 @@ class UserStory:
 
 
 # Normale Story (Standardgröße, hohe Priorität)
-story1 = UserStory("STORY-1", arrival_day=1, priority=1)
+story1 = UserStory(
+    "STORY-1", phase_durations={"spec": 2, "dev": 5, "test": 3, "rollout": 1})
 
 # Große Story (doppelte Dauer in allen Phasen, mittlere Priorität)
-story2 = UserStory("STORY-2", arrival_day=1, priority=2, size_factor=2.0)
+story2 = UserStory(
+    "STORY-2", phase_durations={"spec": 4, "dev": 10, "test": 6, "rollout": 2},
+    arrival_day=1, priority=2, size_factor=2.0)
 
 # Story mit individuell angepassten Dauern, niedrige Priorität
 custom_durations = {
@@ -153,7 +155,7 @@ custom_durations = {
 }
 story3 = UserStory(
     "STORY-3",
+    phase_durations=custom_durations,
     arrival_day=1,
-    priority=3,
-    phase_durations=custom_durations
+    priority=3
 )

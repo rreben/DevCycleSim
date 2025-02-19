@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
-
-from .user_story import UserStory
+from devcyclesim.src.user_story import UserStory
 
 
 @dataclass

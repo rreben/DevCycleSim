@@ -71,16 +71,13 @@ class SimulationController:
         """Execute one simulation tick."""
         self._update_capacities()
 
-        # Generate new stories and add to specification
-        # TODO: Implement story generation logic
+        # Process development errors first
+        error_stories = self.development.get_error_stories()
+        for story in error_stories:
+            if story.errors.has_spec_revision_needed:
+                self.specification.enqueue(story)
 
-        # Start processing in all phases
-        self.specification.start_processing()
-        self.development.start_processing()
-        self.testing.start_processing()
-        self.rollout.start_processing()
-
-        # Process tick in all phases
+        # Normal processing
         completed_specs = self.specification.process_takt()
         for story in completed_specs:
             self.development.enqueue(story)

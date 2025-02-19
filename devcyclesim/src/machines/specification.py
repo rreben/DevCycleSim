@@ -1,5 +1,5 @@
-from .base import Machine
-from .user_story import UserStory
+from devcyclesim.src.machines.base import Machine
+from devcyclesim.src.user_story import UserStory
 
 
 class SpecificationMachine(Machine):
@@ -11,7 +11,7 @@ class SpecificationMachine(Machine):
     def __init__(self, capacity: int):
         super().__init__("Specification", capacity)
 
-    def process_takt(self) -> list[UserStory]:
+    def process_takt(self) -> "list[UserStory]":
         """
         Process one tick for all active stories.
         Overrides the base method but keeps the same basic functionality
