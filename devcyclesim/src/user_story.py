@@ -68,33 +68,33 @@ class UserStory:
 
     def __post_init__(self):
         """Initialize remaining days based on current phase duration."""
-        # Validierung der Eingabeparameter
+        # Validate input parameters
         if self.priority <= 0:
-            raise ValueError("Priorität muss positiv sein")
+            raise ValueError("Priority must be positive")
         if self.arrival_day <= 0:
-            raise ValueError("Ankunftstag muss positiv sein")
+            raise ValueError("Arrival day must be positive")
         if self.size_factor <= 0:
-            raise ValueError("Größenfaktor muss positiv sein")
+            raise ValueError("Size factor must be positive")
 
-        # Validierung der Phasendauern
-        # Zuerst prüfen wir die Werte der vorhandenen Phasen
+        # Validate phase durations
+        # First check the values of existing phases
         if any(duration <= 0 for duration in self.phase_durations.values()):
-            raise ValueError("Alle Phasendauern müssen positiv sein")
+            raise ValueError("All phase durations must be positive")
 
-        # Dann prüfen wir, ob alle erforderlichen Phasen vorhanden sind
+        # Then check if all required phases are present
         required_phases = {phase.value for phase in StoryPhase}
         if not all(phase in self.phase_durations for phase in required_phases):
-            raise ValueError("Alle Phasen müssen definiert sein")
+            raise ValueError("All phases must be defined")
 
-        # Initialisierung der remaining_days
+        # Initialize remaining days
         self.remaining_days = self.phase_durations[self.current_phase.value]
 
     def process_day(self) -> bool:
         """
-        Verarbeitet einen Tag für diese Story.
+        Process one day for this story.
 
         Returns:
-            bool: True wenn die aktuelle Phase abgeschlossen wurde, sonst False
+            bool: True if current phase is completed, False otherwise
         """
         if self.status != StoryStatus.IN_PROGRESS:
             return False

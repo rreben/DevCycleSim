@@ -3,11 +3,11 @@ from devcyclesim.src.user_story import UserStory
 
 
 def test_user_story_basic_creation():
-    """Test die Erstellung einer UserStory mit Standardwerten"""
+    """Test creating a UserStory with default values"""
     story = UserStory(
         "STORY-1",
         arrival_day=1,
-        priority=1,  # Explizit setzen, da kein Standardwert
+        priority=1,
         phase_durations={
             "spec": 2,
             "dev": 5,
@@ -17,9 +17,9 @@ def test_user_story_basic_creation():
     )
     assert story.story_id == "STORY-1"
     assert story.arrival_day == 1
-    assert story.priority == 1  # Standardpriorität
-    assert story.size_factor == 1.0  # Standard-Größenfaktor
-    # Prüfe die Standard-Phasendauern
+    assert story.priority == 1  # default priority
+    assert story.size_factor == 1.0  # default size factor
+    # Check default phase durations
     assert story.phase_durations == {
         "spec": 2,
         "dev": 5,
@@ -77,8 +77,8 @@ def test_user_story_with_phase_durations():
 
 
 def test_user_story_invalid_priority():
-    """Test, dass negative Prioritäten nicht erlaubt sind"""
-    with pytest.raises(ValueError, match="Priorität muss positiv sein"):
+    """Test that negative priorities are not allowed"""
+    with pytest.raises(ValueError, match="Priority must be positive"):
         UserStory(
             "STORY-5",
             arrival_day=1,
@@ -93,8 +93,8 @@ def test_user_story_invalid_priority():
 
 
 def test_user_story_invalid_arrival_day():
-    """Test, dass negative Ankunftstage nicht erlaubt sind"""
-    with pytest.raises(ValueError, match="Ankunftstag muss positiv sein"):
+    """Test that negative arrival days are not allowed"""
+    with pytest.raises(ValueError, match="Arrival day must be positive"):
         UserStory(
             "STORY-6",
             arrival_day=-1,
@@ -108,8 +108,8 @@ def test_user_story_invalid_arrival_day():
 
 
 def test_user_story_invalid_size_factor():
-    """Test, dass negative oder Null-Größenfaktoren nicht erlaubt sind"""
-    with pytest.raises(ValueError, match="Größenfaktor muss positiv sein"):
+    """Test that negative or zero size factors are not allowed"""
+    with pytest.raises(ValueError, match="Size factor must be positive"):
         UserStory(
             "STORY-7",
             arrival_day=1,
@@ -121,7 +121,7 @@ def test_user_story_invalid_size_factor():
                 "rollout": 1
             }
         )
-    with pytest.raises(ValueError, match="Größenfaktor muss positiv sein"):
+    with pytest.raises(ValueError, match="Size factor must be positive"):
         UserStory(
             "STORY-8",
             arrival_day=1,
@@ -136,15 +136,15 @@ def test_user_story_invalid_size_factor():
 
 
 def test_user_story_invalid_phase_durations():
-    """Test, dass Phasendauern vollständig und positiv sein müssen"""
+    """Test that phase durations must be complete and positive"""
     invalid_durations = {
         "spec": 1,
-        "dev": -1,  # Negative Dauer
+        "dev": -1,  # Negative duration
         "test": 4
-        # Fehlende 'rollout' Phase
+        # Missing 'rollout' phase
     }
     with pytest.raises(
-            ValueError, match="Alle Phasendauern müssen positiv sein"):
+            ValueError, match="All phase durations must be positive"):
         UserStory("STORY-9", arrival_day=1, phase_durations=invalid_durations)
 
 
@@ -168,16 +168,16 @@ def test_user_story_required_parameters():
 
 
 def test_user_story_missing_phases():
-    """Test, dass alle Phasen definiert sein müssen"""
+    """Test that all phases must be defined"""
     incomplete_durations = {
         "spec": 1,
         "dev": 2,
         "test": 4
-        # Fehlende 'rollout' Phase
+        # Missing 'rollout' phase
     }
     with pytest.raises(
         ValueError,
-        match="Alle Phasen müssen definiert sein"
+        match="All phases must be defined"
     ):
         UserStory(
             "STORY-9",
@@ -187,16 +187,16 @@ def test_user_story_missing_phases():
 
 
 def test_user_story_negative_durations():
-    """Test, dass keine negativen Phasendauern erlaubt sind"""
+    """Test that negative phase durations are not allowed"""
     negative_durations = {
         "spec": 1,
-        "dev": -1,  # Negative Dauer
+        "dev": -1,  # Negative duration
         "test": 4,
         "rollout": 1
     }
     with pytest.raises(
         ValueError,
-        match="Alle Phasendauern müssen positiv sein"
+        match="All phase durations must be positive"
     ):
         UserStory(
             "STORY-10",
