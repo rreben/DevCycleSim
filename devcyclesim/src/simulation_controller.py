@@ -20,7 +20,7 @@ class ResourcePlan:
         if (self.specification_capacity < 0 or self.development_capacity < 0 or
                 self.testing_capacity < 0 or self.rollout_capacity < 0):
             raise ValueError("Capacities cannot be negative")
-        
+
         if self.start_day >= self.end_day:
             raise ValueError("Start day must be before end day")
 
