@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Dict, List
-from .machines import Machine
-from .machines.user_story import UserStory
+from .machines.base import Machine
+from .user_story import UserStory
 
 
 @dataclass
@@ -64,15 +64,26 @@ class SimulationController:
 
     def generate_story(self) -> UserStory:
         """Generate a new UserStory with random properties."""
-        # Implement story generation logic here
-        pass
+        # Generiere eine neue UserStory mit zufälligen Eigenschaften
+        import uuid
+        import random
+
+        story = UserStory(
+            story_id=str(uuid.uuid4()),
+            phase_durations={
+                "specification": random.randint(1, 5),
+                "development": random.randint(1, 5),
+                "testing": random.randint(1, 5),
+                "rollout": random.randint(1, 5)
+            }
+        )
+        return story
 
     def execute_tick(self) -> None:
         """Execute one simulation tick."""
         self._update_capacities()
-
         # Process development errors first
-        error_stories = self.development.get_error_stories()
+        error_stories = self.development.get_stories_with_errors()
         for story in error_stories:
             if story.errors.has_spec_revision_needed:
                 self.specification.enqueue(story)

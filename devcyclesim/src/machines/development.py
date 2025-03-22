@@ -1,6 +1,6 @@
 from typing import List
-from .machine import Machine
-from .user_story import UserStory
+from base import Machine
+from user_story import UserStory
 
 
 class DevelopmentMachine(Machine):

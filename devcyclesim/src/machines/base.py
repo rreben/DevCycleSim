@@ -48,3 +48,11 @@ class Machine:
     def get_queue_length(self) -> int:
         """Gibt die Länge der Warteschlange zurück."""
         return len(self.queue)
+
+    def get_stories_with_errors(self) -> List[UserStory]:
+        """
+        Returns stories that have errors.
+        This base implementation returns an empty list.
+        Specialized machines should override this method.
+        """
+        return []
