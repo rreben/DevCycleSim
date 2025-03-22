@@ -132,3 +132,35 @@ class SimulationController:
                 + self.rollout.get_active_count()
             ),
         }
+
+    @classmethod
+    def create_with_default_plan(
+        cls,
+        team_size: int = 8,
+        simulation_duration: int = 100
+    ) -> "SimulationController":
+        """
+        Erstellt einen SimulationController mit Standardressourcenverteilung
+        basierend auf dem klassischen Wasserfallmodell.
+
+        Args:
+            team_size: Größe des Entwicklungsteams (Standard: 8)
+            simulation_duration: Dauer der Simulation in Tagen (Standard: 100)
+        """
+        controller = cls(
+            total_team_size=team_size,
+            simulation_duration=simulation_duration
+        )
+
+        # Standardressourcenplan für das gesamte Projekt
+        default_plan = ResourcePlan(
+            start_day=0,
+            end_day=simulation_duration,
+            specification_capacity=2,  # 25% von 8
+            development_capacity=3,    # 40% von 8
+            testing_capacity=2,        # 25% von 8
+            rollout_capacity=1         # 10% von 8
+        )
+
+        controller.add_resource_plan(default_plan)
+        return controller
