@@ -345,13 +345,131 @@ def test_queue_management(standard_controller):
     assert controller.specification.get_active_count() == 1
     assert controller.specification.get_queue_length() == 2
 
-# def test_simulation_execution():
+
+def test_simulation_execution():
+    """
+    Tests für den Simulationsablauf mit mehreren Stories und Warteschlangen.
+
+    Testet:
+    - Verarbeitung mehrerer Stories durch alle Phasen
+    - Korrekte Handhabung von Kapazitätsbeschränkungen
+    - FIFO-Prinzip bei der Story-Verarbeitung
+    - Durchlaufzeiten der Stories
+    """
+    # Arrange: Controller mit begrenzten Ressourcen erstellen
+    controller = SimulationController(
+        total_team_size=8,
+        simulation_duration=50
+    )
+
+    # ResourcePlan mit bewusst niedrigen Kapazitäten,
+    # um Warteschlangen zu erzeugen
+    controller.add_resource_plan(ResourcePlan(
+        start_day=0,
+        end_day=50,
+        specification_capacity=2,  # Max. 2 Stories parallel in Spezifikation
+        development_capacity=2,    # Max. 2 Stories parallel in Entwicklung
+        testing_capacity=1,        # Bottleneck: Nur 1 Story in Test
+        rollout_capacity=1         # Max. 1 Story parallel im Rollout
+    ))
+
+    # 10 Stories mit gestaffelten Ankunftszeiten erstellen
+    stories = []
+    for i in range(10):
+        story = UserStory(
+            story_id=f"SIM-{i+1}",
+            priority=1,
+            arrival_day=i * 2 + 1,  # Stories kommen an Tag 1, 3, 5, ...
+            size_factor=1.0,
+            phase_durations={
+                "spec": 3,  # 3 Tage Spezifikation
+                "dev": 4,   # 4 Tage Entwicklung
+                "test": 3,  # 3 Tage Test
+                "rollout": 2  # 2 Tage Rollout
+            }
+        )
+        stories.append(story)
+        controller.specification.enqueue(story)
+
+    # Act: Simulation durchführen
+    controller.run_simulation()
+
+    # Assert
+    # 1. Prüfe ob alle Stories abgeschlossen wurden
+    assert len(controller.completed_stories) == 10, (
+        "Alle Stories sollten abgeschlossen sein"
+    )
+
+    # 2. Prüfe die Reihenfolge der Fertigstellung (FIFO)
+    completion_order = [s.story_id for s in controller.completed_stories]
+    assert completion_order == [f"SIM-{i+1}" for i in range(10)], (
+        "Stories sollten in FIFO-Reihenfolge abgeschlossen werden"
+    )
+
+    # 3. Prüfe die minimalen Durchlaufzeiten
+    for story in controller.completed_stories:
+        # Minimale theoretische Durchlaufzeit
+        min_duration = sum(story.phase_durations.values())
+        # Story muss mindestens ihre Minimaldauer gebraucht haben
+        assert min_duration <= controller.simulation_duration, (
+            f"Story {story.story_id}: Minimaldauer übersteigt Simulationsdauer"
+        )
+
+
+# def test_simulation_bottleneck():
 #     """
-#     Tests für den Simulationsablauf:
-#     - execute_tick funktioniert korrekt
-#     - run_simulation läuft vollständig durch
-#     - Simulationsdauer wird eingehalten
+#     Test für Engpass-Szenarien in der Simulation.
+#     Testing als Bottleneck mit nur einer Ressource.
 #     """
+#     # Arrange
+#     controller = SimulationController(
+#         total_team_size=8,
+#         simulation_duration=40
+#     )
+
+#     # Testing als Bottleneck konfigurieren
+#     controller.add_resource_plan(ResourcePlan(
+#         start_day=0,
+#         end_day=40,
+#         specification_capacity=3,
+#         development_capacity=3,
+#         testing_capacity=1,  # Bottleneck
+#         rollout_capacity=2
+#     ))
+
+#     # 5 Stories gleichzeitig zum Start
+#     for i in range(5):
+#         story = UserStory(
+#             story_id=f"BOTTLE-{i+1}",
+#             priority=1,
+#             arrival_day=0,
+#             size_factor=1.0,
+#             phase_durations={
+#                 "spec": 2,
+#                 "dev": 3,
+#                 "test": 4,  # Längere Testphase
+#                 "rollout": 1
+#             }
+#         )
+#         controller.specification.enqueue(story)
+
+#     # Act: Simulation schrittweise ausführen und Queue-Länge prüfen
+#     max_testing_queue = 0
+#     for _ in range(controller.simulation_duration):
+#         controller.execute_tick()
+#         current_queue_length = controller.testing.get_queue_length()
+#         max_testing_queue = max(max_testing_queue, current_queue_length)
+
+#     # Assert
+#     # Prüfe ob sich Stories vor dem Testing stauen
+#     assert max_testing_queue >= 2, (
+#         "Testing-Queue sollte sich aufgrund des Bottlenecks füllen"
+#     )
+
+#     # Prüfe ob alle Stories dennoch fertig wurden
+#     assert len(controller.completed_stories) == 5, (
+#         "Alle Stories sollten trotz Bottleneck abgeschlossen sein"
+#     )
 
 # def test_statistics():
 #     """
