@@ -51,7 +51,7 @@ Below is a more detailed model outlining the most important attributes and funct
   *Description:* Decrement the `remaining_days` for the current phase by one takt (day).
 
 - **advance_phase()**  
-  *Description:* When `remaining_days` reaches zero, move the user story to the next phase and reset `remaining_days` using the next phase’s duration.
+  *Description:* When `remaining_days` reaches zero, move the user story to the next phase and reset `remaining_days` using the next phase's duration.
 
 - **is_complete()**  
   *Description:* Check if all phases are completed; returns `True` if the user story has passed through all phases.
@@ -80,14 +80,14 @@ Each machine represents a production station (phase) in the simulation (e.g., Sp
 **Common Functions:**  
 
 - **enqueue(user_story)**  
-  *Description:* Add a user story to the machine’s queue.
+  *Description:* Add a user story to the machine's queue.
 
 - **start_processing()**  
   *Description:* Move user stories from the queue into `active_stories` if there is available capacity.
 
 - **process_takt()**  
   *Description:* For one takt (day), process all active user stories by decrementing their `remaining_days`.  
-  *Note:* If a user story’s `remaining_days` reaches zero, it should be marked as completed for that phase.
+  *Note:* If a user story's `remaining_days` reaches zero, it should be marked as completed for that phase.
 
 - **complete_stories()**  
   *Description:* Identify user stories that have completed the current phase and prepare them for transition to the next phase (e.g., by invoking their `advance_phase()` method).
@@ -265,3 +265,13 @@ Alternativ kann auch `pip` verwendet werden:
 ```bash
 pip install -r requirements.txt
 ```
+
+### Installation des Pakets
+
+Um das Paket im Entwicklungsmodus zu installieren:
+
+```bash
+pip install -e .
+```
+
+Das `-e` Flag installiert das Paket im "editable" Modus, was bedeutet, dass Änderungen am Code sofort wirksam werden, ohne dass Sie das Paket neu installieren müssen.

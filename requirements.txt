@@ -13,4 +13,10 @@ types-setuptools>=68.0.0
 
 # Optional: für die Visualisierung später
 matplotlib>=3.7.0
-seaborn>=0.12.0 
+seaborn>=0.12.0
+
+# Package Management
+setuptools>=68.0.0
+
+# CLI
+click>=8.0.0
