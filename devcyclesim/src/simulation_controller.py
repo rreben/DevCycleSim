@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Dict, List
 from .machines.base import Machine
-from .user_story import UserStory
+from .machines.development import DevelopmentMachine
+from .user_story import UserStory, StoryPhase, StoryStatus
 
 
 @dataclass
@@ -35,7 +36,7 @@ class SimulationController:
 
     # Machines for different phases
     specification: Machine = field(init=False)
-    development: Machine = field(init=False)
+    development: DevelopmentMachine = field(init=False)
     testing: Machine = field(init=False)
     rollout: Machine = field(init=False)
 
@@ -46,7 +47,7 @@ class SimulationController:
     def __post_init__(self):
         """Initialize machines with initial capacities."""
         self.specification = Machine("Specification", 0)
-        self.development = Machine("Development", 0)
+        self.development = DevelopmentMachine(0)
         self.testing = Machine("Testing", 0)
         self.rollout = Machine("Rollout", 0)
 
@@ -91,27 +92,76 @@ class SimulationController:
     def execute_tick(self) -> None:
         """Execute one simulation tick."""
         self._update_capacities()
-        # Process development errors first
-        error_stories = self.development.get_stories_with_errors()
-        for story in error_stories:
-            if story.errors.has_spec_revision_needed:
-                self.specification.enqueue(story)
 
-        # Normal processing
-        completed_specs = self.specification.process_takt()
-        for story in completed_specs:
-            self.development.enqueue(story)
+        # Debugging-Ausgabe hinzufügen
+        print(f"Tag {self.current_day}: Status vor Verarbeitung:")
+        print(f"Spec queue: {len(self.specification.queue)}, "
+              f"active: {len(self.specification.active_stories)}")
+        print(f"Dev queue: {len(self.development.queue)}, "
+              f"active: {len(self.development.active_stories)}")
+        print(f"Test queue: {len(self.testing.queue)}, "
+              f"active: {len(self.testing.active_stories)}")
+        print(f"Rollout queue: {len(self.rollout.queue)}, "
+              f"active: {len(self.rollout.active_stories)}")
 
-        completed_dev = self.development.process_takt()
-        for story in completed_dev:
-            self.testing.enqueue(story)
+        if self.development.active_stories:
+            story = self.development.active_stories[0]
+            print(f"Dev active story: Phase={story.current_phase.value}, "
+                  f"remaining_days={story.remaining_days}")
 
+        # Start processing stories from queues if capacity available
+        self.specification.start_stories()
+        self.development.start_stories()
+        self.testing.start_stories()
+        self.rollout.start_stories()
+
+        # Process in reverse order to prevent multi-phase
+        # transitions in one day
+        # First process rollout
+        completed_rollouts = self.rollout.process_takt()
+        for story in completed_rollouts:
+            story.advance_to_next_phase()  # Set status to DONE
+        self.completed_stories.extend(completed_rollouts)
+
+        # Then process testing
         completed_tests = self.testing.process_takt()
         for story in completed_tests:
+            story.advance_to_next_phase()
             self.rollout.enqueue(story)
+            # Explizit aus active_stories entfernen
+            if story in self.testing.active_stories:
+                self.testing.active_stories.remove(story)
 
-        completed_rollouts = self.rollout.process_takt()
-        self.completed_stories.extend(completed_rollouts)
+        # Then process development
+        completed_dev = self.development.process_takt()
+        for story in completed_dev:
+            story.advance_to_next_phase()
+            self.testing.enqueue(story)
+            if story in self.development.active_stories:
+                self.development.active_stories.remove(story)
+
+        # Finally process specification
+        completed_specs = self.specification.process_takt()
+        for story in completed_specs:
+            story.advance_to_next_phase()
+            self.development.enqueue(story)
+            if story in self.specification.active_stories:
+                self.specification.active_stories.remove(story)
+
+        # Process development errors AFTER all processing -
+        # verschiebe diesen Block ans Ende
+        error_stories = self.development.get_error_stories()
+        print(f"Debug: Error stories found: {len(error_stories)}")
+        for story in error_stories:
+            if story.errors.has_spec_revision_needed:
+                print(f"Debug: Moving story {story.story_id} "
+                      f"back to specification")
+                story.current_phase = StoryPhase.SPEC
+                story.remaining_days = (
+                    story.phase_durations[story.current_phase.value])
+                story.status = StoryStatus.PENDING
+                story.errors.has_spec_revision_needed = False
+                self.specification.enqueue(story)
 
         self.current_day += 1
 

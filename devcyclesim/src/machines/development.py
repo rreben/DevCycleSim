@@ -1,6 +1,7 @@
 from typing import List
-from base import Machine
-from user_story import UserStory
+# Absoluter Import
+from devcyclesim.src.machines.base import Machine
+from devcyclesim.src.user_story import UserStory
 
 
 class DevelopmentMachine(Machine):

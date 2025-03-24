@@ -99,6 +99,11 @@ class UserStory:
         if self.status != StoryStatus.IN_PROGRESS:
             return False
 
+        # Debugging hinzufügen
+        print(f"Story {self.story_id}: Phase={self.current_phase.value}, "
+              f"remaining_days={self.remaining_days} -> "
+              f"{self.remaining_days-1}")
+
         self.remaining_days -= 1
 
         if self.remaining_days <= 0:
