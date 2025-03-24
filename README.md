@@ -275,3 +275,141 @@ pip install -e .
 ```
 
 Das `-e` Flag installiert das Paket im "editable" Modus, was bedeutet, dass Änderungen am Code sofort wirksam werden, ohne dass Sie das Paket neu installieren müssen.
+
+## CLI Verwendung
+
+DevCycleSim bietet ein Kommandozeilen-Interface (CLI) für die Ausführung von Simulationen. Hier sind die wichtigsten Optionen:
+
+```bash
+devcyclesim run [OPTIONS]
+```
+
+### Optionen
+
+- `--team-size INTEGER`: Größe des Teams (Standard: 8)
+- `--duration INTEGER`: Simulationsdauer in Tagen (Standard: 100)
+- `--resource-plan TEXT`: Format: "start-end:spec,dev,test,rollout" (mehrfach verwendbar)
+- `--resource-plans-file FILE`: JSON-Datei mit Resource Plans
+- `--stories-file FILE`: JSON-Datei mit User Stories
+- `--generate-stories INTEGER`: Anzahl der zu generierenden Stories
+- `--seed INTEGER`: Zufallsseed für reproduzierbare Ergebnisse
+- `--output-format [text|json|csv]`: Ausgabeformat (Standard: text)
+- `--output-file FILE`: Ausgabedatei (Standard: stdout)
+- `--verbose`: Detaillierte Ausgabe
+
+### Beispiele
+
+1. Einfache Simulation mit Standardwerten:
+
+    ```bash
+    devcyclesim run
+    ```
+
+2. Angepasste Simulation mit Resource Plan:
+
+   ```bash
+   devcyclesim run --team-size 10 --duration 50 --resource-plan "0-25:3,4,2,1" --resource-plan "26-50:2,5,2,1"
+   ```
+
+3. Simulation mit JSON-Dateien:
+
+   ```bash
+   devcyclesim run --resource-plans-file plans.json --stories-file stories.json
+   ```
+
+### JSON-Datei Formate
+
+#### Resource Plans (resource_plans.json)
+
+```json
+[
+  {
+    "start": 0,
+    "end": 20,
+    "resources": {
+      "spec": 2,
+      "dev": 3,
+      "test": 2,
+      "rollout": 1
+    }
+  },
+  {
+    "start": 21,
+    "end": 40,
+    "resources": {
+      "spec": 1,
+      "dev": 4,
+      "test": 2,
+      "rollout": 1
+    }
+  }
+]
+```
+
+#### User Stories (stories.json)
+
+```json
+[
+  {
+    "id": "STORY-1",
+    "phase_durations": {
+      "spec": 2,
+      "dev": 5,
+      "test": 3,
+      "rollout": 1
+    }
+  },
+  {
+    "id": "STORY-2",
+    "phase_durations": {
+      "spec": 3,
+      "dev": 8,
+      "test": 4,
+      "rollout": 2
+    }
+  }
+]
+```
+
+### Ausgabeformate
+
+1. Text (Standard):
+
+    ```ascii
+    Simulationsergebnisse:
+    - Completed Stories: 5
+    - Stories in Specification: 2
+    - Stories in Development: 3
+    - Stories in Testing: 1
+    - Stories in Rollout: 0
+    ```
+
+2. JSON:
+
+    ```json
+    {
+      "Completed Stories": 5,
+      "Stories in Specification": 2,
+      "Stories in Development": 3,
+      "Stories in Testing": 1,
+      "Stories in Rollout": 0
+    }
+    ```
+
+3. CSV:
+
+    ```ascii
+    Metrik,Wert
+    Completed Stories,5
+    Stories in Specification,2
+    Stories in Development,3
+    Stories in Testing,1
+    Stories in Rollout,0
+    ```
+
+### Hinweise
+
+- Die Summe der Ressourcen in einem Resource Plan darf die Teamgröße nicht überschreiten
+- Wenn kein Resource Plan angegeben wird, wird ein Standardplan verwendet
+- Der Seed-Parameter ermöglicht reproduzierbare Simulationen
+- Im verbose-Modus werden zusätzliche Debug-Informationen ausgegeben
