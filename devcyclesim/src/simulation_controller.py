@@ -46,6 +46,9 @@ class SimulationController:
 
     def __post_init__(self):
         """Initialize machines with initial capacities."""
+        if self.total_team_size < 0:
+            raise ValueError("Team size cannot be negative")
+
         self.specification = Machine("Specification", 0)
         self.development = DevelopmentMachine(0)
         self.testing = Machine("Testing", 0)

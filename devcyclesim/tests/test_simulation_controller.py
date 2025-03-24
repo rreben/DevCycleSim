@@ -576,11 +576,66 @@ def test_statistics():
         "Insgesamt sollten 3 Stories im System sein"
     )
 
-# def test_edge_cases():
-#     """
-#     Tests für Randfälle:
-#     - Leeres Team
-#     - Maximale Teamgröße
-#     - Keine ResourcePlans
-#     - Ungültige Story-Eigenschaften
-#     """
+
+def test_negative_team_size():
+    """Test für negative Teamgröße."""
+    with pytest.raises(ValueError, match="Team size cannot be negative"):
+        SimulationController(
+            total_team_size=-1,
+            simulation_duration=100
+        )
+
+
+def test_max_team_size():
+    """Test für eine sehr große Teamgröße."""
+    # Erstelle Controller mit großem Team
+    large_controller = SimulationController(
+        total_team_size=1000,
+        simulation_duration=100
+    )
+
+    # Füge ResourcePlan mit valider Verteilung hinzu
+    large_plan = ResourcePlan(
+        start_day=0,
+        end_day=100,
+        specification_capacity=250,    # 25%
+        development_capacity=400,      # 40%
+        testing_capacity=250,          # 25%
+        rollout_capacity=100          # 10%
+    )
+    large_controller.add_resource_plan(large_plan)
+
+    # Prüfe ob die Kapazitäten korrekt gesetzt wurden
+    assert large_controller.total_team_size == 1000
+    total_capacity = (
+        large_plan.specification_capacity +
+        large_plan.development_capacity +
+        large_plan.testing_capacity +
+        large_plan.rollout_capacity
+    )
+    assert total_capacity == large_controller.total_team_size
+
+
+def test_no_resource_plans():
+    """Test für Simulation ohne ResourcePlans."""
+    controller = SimulationController(
+        total_team_size=8,
+        simulation_duration=100
+    )
+
+    # Prüfe initiale Kapazitäten (sollten 0 sein)
+    assert controller.specification.capacity == 0
+    assert controller.development.capacity == 0
+    assert controller.testing.capacity == 0
+    assert controller.rollout.capacity == 0
+
+    # Führe Simulation aus
+    controller.run_simulation()
+
+    # Prüfe ob keine Stories verarbeitet wurden
+    stats = controller.get_statistics()
+    assert stats["Completed Stories"] == 0
+    assert stats["Stories in Specification"] == 0
+    assert stats["Stories in Development"] == 0
+    assert stats["Stories in Testing"] == 0
+    assert stats["Stories in Rollout"] == 0
