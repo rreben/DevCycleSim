@@ -203,14 +203,9 @@ def test_capacity_updates():
     assert controller.rollout.capacity == 0
 
 
-def test_story_processing():
-    """
-    Tests für die Story-Verarbeitung:
-    - Stories durchlaufen alle Phasen korrekt
-    - Fehlerbehandlung (z.B. Rückführung zur Spezifikation)
-    - Korrekte Warteschlangenverwaltung
-    """
-    # Test 1: Story durchläuft alle Phasen
+@pytest.fixture
+def standard_controller():
+    """Fixture für einen StandardController mit Ressourcenplan."""
     controller = SimulationController(
         total_team_size=8, simulation_duration=100)
     controller.add_resource_plan(ResourcePlan(
@@ -221,6 +216,12 @@ def test_story_processing():
         testing_capacity=2,
         rollout_capacity=1
     ))
+    return controller
+
+
+def test_story_full_lifecycle(standard_controller):
+    """Test 1: Eine Story durchläuft erfolgreich alle Phasen."""
+    controller = standard_controller
 
     # Story mit festen Zeiten für deterministisches Testen
     story = UserStory(
@@ -246,12 +247,9 @@ def test_story_processing():
     controller.execute_tick()  # Tag 2
 
     # Prüfen ob die Story in der Development-Phase ist
-    # (entweder in der Queue oder bereits aktiv)
-    story_in_dev = (
-        controller.development.get_queue_length() == 1 or
-        controller.development.get_active_count() == 1
-    )
-    assert story_in_dev, "Story sollte in Development sein"
+    assert (
+        controller.development.get_queue_length() == 1
+    ), "Story sollte in Development sein"
 
     # Tag 3-5: Story in Entwicklung
     controller.execute_tick()  # Tag 3
@@ -270,17 +268,10 @@ def test_story_processing():
     controller.execute_tick()  # Tag 8
     assert len(controller.completed_stories) == 1
 
-    # Test 2: Fehlerbehandlung - Rückführung zur Spezifikation
-    controller = SimulationController(
-        total_team_size=8, simulation_duration=100)
-    controller.add_resource_plan(ResourcePlan(
-        start_day=0,
-        end_day=100,
-        specification_capacity=2,
-        development_capacity=3,
-        testing_capacity=2,
-        rollout_capacity=1
-    ))
+
+def test_story_error_handling(standard_controller):
+    """Test 2: Fehlerbehandlung - Rückführung zur Spezifikation."""
+    controller = standard_controller
 
     error_story = UserStory(
         story_id="TEST-2",
@@ -315,7 +306,10 @@ def test_story_processing():
     assert controller.specification.get_queue_length() == 1
     assert controller.development.get_queue_length() == 0
 
-    # Test 3: Warteschlangenverwaltung
+
+def test_queue_management(standard_controller):
+    """Test 3: Warteschlangenverwaltung und FIFO-Prinzip."""
+    # Kapazität auf 1 setzen für bessere Testbarkeit
     controller = SimulationController(
         total_team_size=8, simulation_duration=100)
     controller.add_resource_plan(ResourcePlan(
