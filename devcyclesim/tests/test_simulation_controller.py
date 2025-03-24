@@ -416,60 +416,60 @@ def test_simulation_execution():
         )
 
 
-# def test_simulation_bottleneck():
-#     """
-#     Test für Engpass-Szenarien in der Simulation.
-#     Testing als Bottleneck mit nur einer Ressource.
-#     """
-#     # Arrange
-#     controller = SimulationController(
-#         total_team_size=8,
-#         simulation_duration=40
-#     )
+def test_simulation_bottleneck():
+    """
+    Test für Engpass-Szenarien in der Simulation.
+    Testing als Bottleneck mit nur einer Ressource.
+    """
+    # Arrange
+    controller = SimulationController(
+        total_team_size=8,
+        simulation_duration=40
+    )
 
-#     # Testing als Bottleneck konfigurieren
-#     controller.add_resource_plan(ResourcePlan(
-#         start_day=0,
-#         end_day=40,
-#         specification_capacity=3,
-#         development_capacity=3,
-#         testing_capacity=1,  # Bottleneck
-#         rollout_capacity=2
-#     ))
+    # Testing als Bottleneck konfigurieren
+    controller.add_resource_plan(ResourcePlan(
+        start_day=0,
+        end_day=40,
+        specification_capacity=2,    # Reduziert von 3 auf 2
+        development_capacity=3,
+        testing_capacity=1,         # Bottleneck
+        rollout_capacity=2
+    ))
 
-#     # 5 Stories gleichzeitig zum Start
-#     for i in range(5):
-#         story = UserStory(
-#             story_id=f"BOTTLE-{i+1}",
-#             priority=1,
-#             arrival_day=0,
-#             size_factor=1.0,
-#             phase_durations={
-#                 "spec": 2,
-#                 "dev": 3,
-#                 "test": 4,  # Längere Testphase
-#                 "rollout": 1
-#             }
-#         )
-#         controller.specification.enqueue(story)
+    # 5 Stories gleichzeitig zum Start
+    for i in range(5):
+        story = UserStory(
+            story_id=f"BOTTLE-{i+1}",
+            priority=1,
+            arrival_day=1,
+            size_factor=1.0,
+            phase_durations={
+                "spec": 2,
+                "dev": 3,
+                "test": 4,  # Längere Testphase
+                "rollout": 1
+            }
+        )
+        controller.specification.enqueue(story)
 
-#     # Act: Simulation schrittweise ausführen und Queue-Länge prüfen
-#     max_testing_queue = 0
-#     for _ in range(controller.simulation_duration):
-#         controller.execute_tick()
-#         current_queue_length = controller.testing.get_queue_length()
-#         max_testing_queue = max(max_testing_queue, current_queue_length)
+    # Act: Simulation schrittweise ausführen und Queue-Länge prüfen
+    max_testing_queue = 0
+    for _ in range(controller.simulation_duration):
+        controller.execute_tick()
+        current_queue_length = controller.testing.get_queue_length()
+        max_testing_queue = max(max_testing_queue, current_queue_length)
 
-#     # Assert
-#     # Prüfe ob sich Stories vor dem Testing stauen
-#     assert max_testing_queue >= 2, (
-#         "Testing-Queue sollte sich aufgrund des Bottlenecks füllen"
-#     )
+    # Assert
+    # Prüfe ob sich Stories vor dem Testing stauen
+    assert max_testing_queue >= 2, (
+        "Testing-Queue sollte sich aufgrund des Bottlenecks füllen"
+    )
 
-#     # Prüfe ob alle Stories dennoch fertig wurden
-#     assert len(controller.completed_stories) == 5, (
-#         "Alle Stories sollten trotz Bottleneck abgeschlossen sein"
-#     )
+    # Prüfe ob alle Stories dennoch fertig wurden
+    assert len(controller.completed_stories) == 5, (
+        "Alle Stories sollten trotz Bottleneck abgeschlossen sein"
+    )
 
 # def test_statistics():
 #     """
