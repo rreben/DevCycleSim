@@ -186,59 +186,11 @@ class UserStory:
                 completed_work[task.phase] += 1
         return completed_work
 
+    def get_total_tasks(self) -> int:
+        """
+        Returns the total number of tasks in the user story.
 
-# Example of a normal story
-story1 = UserStory.from_phase_durations(
-    "STORY-1",
-    phase_durations={
-        Phase.SPEC: 2,
-        Phase.DEV: 5,
-        Phase.TEST: 3,
-        Phase.ROLLOUT: 1
-    }
-)
-
-# Example of a story with specification error
-tasks_with_spec_error = np.array([
-    Task(Phase.SPEC),
-    Task(Phase.SPEC),
-    Task(Phase.DEV),
-    Task(Phase.DEV),
-    Task(Phase.DEV),
-    Task(Phase.SPEC),  # Rework in specification
-    Task(Phase.DEV),   # Remaining development
-    Task(Phase.DEV),
-    Task(Phase.TEST),
-    Task(Phase.TEST),
-    Task(Phase.TEST),
-    Task(Phase.ROLLOUT)
-], dtype=object)
-
-story2 = UserStory(
-    "STORY-2",
-    tasks=tasks_with_spec_error
-)
-
-# Example of a story with test errors
-tasks_with_test_error = np.array([
-    Task(Phase.SPEC),
-    Task(Phase.SPEC),
-    Task(Phase.DEV),
-    Task(Phase.DEV),
-    Task(Phase.DEV),
-    Task(Phase.DEV),
-    Task(Phase.DEV),
-    Task(Phase.TEST),
-    Task(Phase.TEST),
-    Task(Phase.DEV),   # Bug fixing
-    Task(Phase.DEV),
-    Task(Phase.DEV),
-    Task(Phase.TEST),  # Retest
-    Task(Phase.TEST),
-    Task(Phase.ROLLOUT)
-], dtype=object)
-
-story3 = UserStory(
-    "STORY-3",
-    tasks=tasks_with_test_error
-)
+        Returns:
+            int: Total number of tasks
+        """
+        return len(self.tasks)
