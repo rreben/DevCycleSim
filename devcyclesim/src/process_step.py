@@ -101,6 +101,9 @@ class ProcessStep:
             story: UserStory = self.work_in_progress[-1]  # type: ignore
             self.work_in_progress = self.work_in_progress[:-1]
 
+            # Reset story status to pending
+            story.status = StoryStatus.PENDING
+
             # Place story at the beginning of input queue
             self.input_queue = np.insert(self.input_queue, 0, story)
             current_load -= 1
