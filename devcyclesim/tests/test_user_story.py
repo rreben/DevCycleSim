@@ -115,7 +115,7 @@ def test_user_story_basic_creation():
     assert work_done[Phase.SPEC] == 2
 
     # Day 3 - Development cannot start automatically
-    assert story.status == StoryStatus.PENDING
+    assert story.status == StoryStatus.PHASE_DONE
     assert not story.process_day(3)
     assert story.current_phase == Phase.DEV
     work_done = story.get_completed_work()
@@ -134,7 +134,7 @@ def test_user_story_basic_creation():
             assert story.current_phase == Phase.DEV
 
     # Day 8 - Testing cannot start automatically
-    assert story.status == StoryStatus.PENDING
+    assert story.status == StoryStatus.PHASE_DONE
     assert not story.process_day(8)
     assert story.current_phase == Phase.TEST
     work_done = story.get_completed_work()
@@ -152,7 +152,7 @@ def test_user_story_basic_creation():
             assert story.current_phase == Phase.TEST
 
     # Day 11 - Rollout cannot start automatically
-    assert story.status == StoryStatus.PENDING
+    assert story.status == StoryStatus.PHASE_DONE
     assert not story.process_day(11)
     assert story.current_phase == Phase.ROLLOUT
     work_done = story.get_completed_work()
@@ -203,7 +203,7 @@ def test_user_story_with_spec_error():
         assert work_done[Phase.DEV] == day - 2
 
     # Day 6 - Back to specification
-    assert story.status == StoryStatus.PENDING
+    assert story.status == StoryStatus.PHASE_DONE
     story.start_user_story()
     assert story.process_day(6)
     work_done = story.get_completed_work()

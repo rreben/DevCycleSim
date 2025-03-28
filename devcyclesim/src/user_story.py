@@ -19,6 +19,7 @@ class TaskStatus(Enum):
 class StoryStatus(Enum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
+    PHASE_DONE = "phase_done"
     DONE = "done"
 
 
@@ -155,7 +156,7 @@ class UserStory:
         # Check if the next task belongs to the same phase
         next_task = self.current_task
         if next_task and next_task.phase != current_phase:
-            self.status = StoryStatus.PENDING
+            self.status = StoryStatus.PHASE_DONE
 
         return True
 
