@@ -2,6 +2,7 @@ from devcyclesim.src.process_step import ProcessStep
 from devcyclesim.src.user_story import (
     UserStory, Phase, StoryStatus
 )
+import pytest
 
 
 def test_process_step_spec_phase():
@@ -70,14 +71,14 @@ def test_process_step_capacity_reduction():
     Tests the behavior when capacity is reduced while stories are in progress.
     Three stories, each requiring 3 days in SPEC phase, with initial capacity
     of 2 that gets reduced to 1 on day 2.
-    
+
     Expected behavior:
     - Initially 2 stories move to work in progress
     - On day 2, capacity reduction forces one story back to input queue
     - The returned story should be at the start of the input queue
     - The returned story should be in PENDING status
     - All stories should eventually complete after 8 days
-    
+
     Story progression:
     Story 1: Days 1-3 (continuous work)
     Story 2: Day 1 + Days 4-5 (interrupted, keeps 1 day of progress)
@@ -201,3 +202,63 @@ def test_process_step_capacity_reduction():
         assert work_done[Phase.DEV] == 0   # No DEV work started
         assert work_done[Phase.TEST] == 0  # No TEST work started
         assert work_done[Phase.ROLLOUT] == 0  # No ROLLOUT work started
+
+
+def test_process_step_wrong_phase():
+    """
+    Tests that a ValueError is raised when trying to process a story
+    in the wrong phase.
+
+    Scenario:
+    - Create a story that starts in SPEC phase
+    - Try to process it in a DEV process step
+    - Should raise ValueError with appropriate message
+    - Story should remain in work_in_progress as the error occurs during
+      day_processing, after the story has been moved from input_queue
+    """
+    # Create process step for development phase
+    dev_step = ProcessStep(
+        name="Development",
+        phase=Phase.DEV,
+        _capacity=1
+    )
+
+    # Create a story that starts in SPEC phase
+    story = UserStory.from_phase_durations(
+        "STORY-1",
+        phase_durations={
+            Phase.SPEC: 2,
+            Phase.DEV: 3,
+            Phase.TEST: 2,
+            Phase.ROLLOUT: 1
+        }
+    )
+
+    # Add story to process step
+    dev_step.add(story)
+
+    # Initial state checks
+    assert dev_step.count_input_queue() == 1
+    assert dev_step.count_work_in_progress() == 0
+
+    # Try to process the story - should raise ValueError
+    with pytest.raises(ValueError) as exc_info:
+        dev_step.process_day(1)
+
+    # Verify the error message
+    expected_msg = (
+        "Story STORY-1 in wrong phase: Phase.SPEC, expected: Phase.DEV. "
+        "Simulation error detected."
+    )
+    assert str(exc_info.value) == expected_msg
+
+    # Verify that story is in work_in_progress
+    # (moved there by start_of_day_processing before the phase validation)
+    assert dev_step.count_input_queue() == 0
+    assert dev_step.count_work_in_progress() == 1
+    assert dev_step.count_done() == 0
+
+    # Verify story state
+    story_obj: UserStory = dev_step.work_in_progress[0]  # type: ignore
+    assert story_obj.status == StoryStatus.IN_PROGRESS
+    assert story_obj.current_phase == Phase.SPEC
