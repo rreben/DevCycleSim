@@ -45,6 +45,7 @@ class ProcessStatistic:
     Args:
         day: Current simulation day
         backlog_count: Number of stories in backlog
+        finished_work_count: Number of completed stories
         spec_stats: Statistics for SPEC step
         dev_stats: Statistics for DEV step
         test_stats: Statistics for TEST step
@@ -52,6 +53,7 @@ class ProcessStatistic:
     """
     day: int
     backlog_count: int
+    finished_work_count: int
     spec_stats: StepStatistic
     dev_stats: StepStatistic
     test_stats: StepStatistic
@@ -72,6 +74,7 @@ class ProcessStatistic:
         return cls(
             day=day,
             backlog_count=len(process.backlog),
+            finished_work_count=len(process.finished_work),
             spec_stats=StepStatistic.from_process_step(process.spec_step),
             dev_stats=StepStatistic.from_process_step(process.dev_step),
             test_stats=StepStatistic.from_process_step(process.test_step),
@@ -87,6 +90,7 @@ class ProcessStatistic:
         print(f"\nProcess Statistics - Day {self.day}")
         print("-" * 50)
         print(f"Backlog: {self.backlog_count} stories")
+        print(f"Finished Work: {self.finished_work_count} stories")
         print("\nProcess Steps:")
         print("-" * 50)
 

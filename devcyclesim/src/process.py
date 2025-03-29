@@ -22,7 +22,7 @@ class Process:
     finished_work: np.ndarray = field(
         default_factory=lambda: np.array([], dtype=object)
     )
-    statistics: 'list[ProcessStatistic]' = field(
+    statistics: list = field(
         default_factory=list
     )
 
@@ -165,7 +165,7 @@ class Process:
         for day in range(1, self.simulation_days + 1):
             self.process_day(day)
 
-    def get_statistics(self) -> 'list[ProcessStatistic]':
+    def get_statistics(self) -> "list[ProcessStatistic]":
         """
         Returns the collected statistics.
 

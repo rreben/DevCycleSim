@@ -70,7 +70,7 @@ def test_process_sunny_path():
     process.process_day(1)
     day1_stats = process.get_statistics()[-1]
     assert day1_stats.backlog_count == 1  # Story3
-    # Story 2
+    assert day1_stats.finished_work_count == 0  # No stories finished yet
     assert day1_stats.spec_stats.work_in_progress_count == 1
     assert day1_stats.spec_stats.done_count == 1  # Story1
     assert day1_stats.dev_stats.input_queue_count == 0
@@ -90,9 +90,9 @@ def test_process_sunny_path():
     process.process_day(2)
     day2_stats = process.get_statistics()[-1]
     assert day2_stats.backlog_count == 0
+    assert day2_stats.finished_work_count == 0  # No stories finished yet
     assert day2_stats.spec_stats.work_in_progress_count == 0
     assert day2_stats.spec_stats.done_count == 2  # Story2
-    # Story1 in DEV
     assert day2_stats.dev_stats.work_in_progress_count == 1
     assert day2_stats.dev_stats.done_count == 0
 
@@ -101,6 +101,7 @@ def test_process_sunny_path():
     # Story-3: wip, just this day, ready for test
     process.process_day(3)
     day3_stats = process.get_statistics()[-1]
+    assert day3_stats.finished_work_count == 0  # No stories finished yet
     assert day3_stats.spec_stats.done_count == 0
     assert day3_stats.dev_stats.work_in_progress_count == 0
     assert day3_stats.dev_stats.done_count == 3
@@ -110,6 +111,7 @@ def test_process_sunny_path():
     # Story-3: test, and stay in test
     process.process_day(4)
     day4_stats = process.get_statistics()[-1]
+    assert day4_stats.finished_work_count == 0  # No stories finished yet
     assert day4_stats.dev_stats.work_in_progress_count == 0
     assert day4_stats.dev_stats.done_count == 0
     assert day4_stats.test_stats.work_in_progress_count == 1
@@ -120,6 +122,7 @@ def test_process_sunny_path():
     # Story-3: test, and ready for rollout
     process.process_day(5)
     day5_stats = process.get_statistics()[-1]
+    assert day5_stats.finished_work_count == 0  # No stories finished yet
     assert day5_stats.test_stats.work_in_progress_count == 0
     assert day5_stats.test_stats.done_count == 1
     assert day5_stats.rollout_stats.input_queue_count == 1
@@ -131,30 +134,30 @@ def test_process_sunny_path():
     # Story-3: capa-wating for rollout
     process.process_day(5)
     day5_stats = process.get_statistics()[-1]
+    assert day5_stats.finished_work_count == 1  # Story1 finished
     assert day5_stats.test_stats.work_in_progress_count == 0
     assert day5_stats.test_stats.done_count == 0
     assert day5_stats.rollout_stats.input_queue_count == 1
     assert day5_stats.rollout_stats.work_in_progress_count == 0
     assert day5_stats.rollout_stats.done_count == 1
-    assert len(process.finished_work) == 1
 
     # Story-2: moved to finished
     # Story-3: rollout and completed
     process.process_day(6)
-    day5_stats = process.get_statistics()[-1]
-    assert day5_stats.test_stats.work_in_progress_count == 0
-    assert day5_stats.test_stats.done_count == 0
-    assert day5_stats.rollout_stats.input_queue_count == 0
-    assert day5_stats.rollout_stats.work_in_progress_count == 0
-    assert day5_stats.rollout_stats.done_count == 1
-    assert len(process.finished_work) == 2
+    day6_stats = process.get_statistics()[-1]
+    assert day6_stats.finished_work_count == 2  # Story1 and Story2 finished
+    assert day6_stats.test_stats.work_in_progress_count == 0
+    assert day6_stats.test_stats.done_count == 0
+    assert day6_stats.rollout_stats.input_queue_count == 0
+    assert day6_stats.rollout_stats.work_in_progress_count == 0
+    assert day6_stats.rollout_stats.done_count == 1
 
     # Story-3: moved to finished
     process.process_day(7)
-    day5_stats = process.get_statistics()[-1]
-    assert day5_stats.test_stats.work_in_progress_count == 0
-    assert day5_stats.test_stats.done_count == 0
-    assert day5_stats.rollout_stats.input_queue_count == 0
-    assert day5_stats.rollout_stats.work_in_progress_count == 0
-    assert day5_stats.rollout_stats.done_count == 0
-    assert len(process.finished_work) == 3
+    day7_stats = process.get_statistics()[-1]
+    assert day7_stats.finished_work_count == 3  # All stories finished
+    assert day7_stats.test_stats.work_in_progress_count == 0
+    assert day7_stats.test_stats.done_count == 0
+    assert day7_stats.rollout_stats.input_queue_count == 0
+    assert day7_stats.rollout_stats.work_in_progress_count == 0
+    assert day7_stats.rollout_stats.done_count == 0
