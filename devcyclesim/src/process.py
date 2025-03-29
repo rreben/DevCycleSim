@@ -1,8 +1,42 @@
 from dataclasses import dataclass, field
+from typing import List
+
 import numpy as np
 from devcyclesim.src.process_step import ProcessStep
 from devcyclesim.src.user_story import Phase, UserStory, StoryStatus
 from devcyclesim.src.process_statistic import ProcessStatistic
+
+
+@dataclass
+class ResourcePlan:
+    """
+    Defines resource allocation for a specific time period.
+
+    Args:
+        start_day: First day of the plan
+        end_day: Last day of the plan
+        specification_capacity: Capacity for SPEC
+        development_capacity: Capacity for DEV
+        testing_capacity: Capacity for TEST
+        rollout_capacity: Capacity for ROLLOUT
+    """
+    start_day: int
+    end_day: int
+    specification_capacity: int
+    development_capacity: int
+    testing_capacity: int
+    rollout_capacity: int
+
+    def __post_init__(self):
+        """Validates the ResourcePlan after initialization."""
+        if (self.specification_capacity < 0 or
+                self.development_capacity < 0 or
+                self.testing_capacity < 0 or
+                self.rollout_capacity < 0):
+            raise ValueError("Capacities cannot be negative")
+
+        if self.start_day >= self.end_day:
+            raise ValueError("Start day must be before end day")
 
 
 @dataclass
@@ -22,7 +56,10 @@ class Process:
     finished_work: np.ndarray = field(
         default_factory=lambda: np.array([], dtype=object)
     )
-    statistics: list = field(
+    statistics: List[ProcessStatistic] = field(
+        default_factory=list
+    )
+    resource_plans: List[ResourcePlan] = field(
         default_factory=list
     )
 
@@ -58,12 +95,21 @@ class Process:
         """
         self.backlog = np.append(self.backlog, [story])
 
+    def add_resource_plan(self, plan: ResourcePlan) -> None:
+        """
+        Adds a ResourcePlan to the list of resource plans.
+
+        Args:
+            plan: The ResourcePlan to be added
+        """
+        self.resource_plans.append(plan)
+
     def _get_phase_step_mapping(self) -> dict:
         """
-        Erstellt ein Mapping von Phasen zu ProcessSteps.
+        Creates a mapping from phases to ProcessSteps.
 
         Returns:
-            Dictionary mit Phase -> ProcessStep Zuordnung
+            Dictionary with Phase -> ProcessStep mapping
         """
         return {
             Phase.SPEC: self.spec_step,
@@ -79,13 +125,13 @@ class Process:
         target_step: ProcessStep
     ) -> None:
         """
-        Verschiebt eine Story zum Ziel-Step.
-        Verwendet add_in_front für Rücksprünge, sonst add.
+        Moves a story to the target step.
+        Uses add_in_front for backwards movements, add otherwise.
 
         Args:
-            story: Die zu verschiebende Story
-            current_step: Aktueller ProcessStep
-            target_step: Ziel ProcessStep
+            story: The story to be moved
+            current_step: Current ProcessStep
+            target_step: Target ProcessStep
         """
         # Reset story status
         story.status = StoryStatus.PENDING
@@ -109,8 +155,8 @@ class Process:
 
     def _process_completed_stories(self) -> None:
         """
-        Verarbeitet fertige Stories aus allen Process Steps.
-        Verschiebt Stories entsprechend ihrer nächsten Phase.
+        Processes completed stories from all process steps.
+        Moves stories according to their next phase.
         """
         phase_to_step = self._get_phase_step_mapping()
         steps = [
@@ -141,8 +187,8 @@ class Process:
 
     def _move_from_backlog_to_spec(self) -> None:
         """
-        Verschiebt Stories aus dem Backlog in die SPEC Input Queue,
-        unter Berücksichtigung der verfügbaren Kapazität.
+        Moves stories from backlog to SPEC input queue,
+        considering available capacity.
         """
         available_capacity = (
             self.spec_step.capacity
@@ -170,26 +216,56 @@ class Process:
 
     def _move_completed_stories(self) -> None:
         """
-        Verschiebt fertige Stories zwischen den Process Steps.
-        Verarbeitet Steps in umgekehrter Reihenfolge (ROLLOUT -> SPEC)
-        um Blockierungen zu vermeiden.
+        Moves completed stories between process steps.
+        Processes steps in reverse order (ROLLOUT -> SPEC)
+        to prevent blocking.
 
-        Spezielle Behandlung für Stories die Nacharbeit benötigen:
-        - Erkennt Stories die zurück zu einer früheren Phase müssen
-        - Verwendet add_in_front um diese Fälle zu priorisieren
-        - Unterstützt Sprünge über mehrere Phasen (z.B. ROLLOUT zu SPEC)
+        Special handling for stories that need rework:
+        - Identifies stories that need to go back to an earlier phase
+        - Uses add_in_front to prioritize these cases
+        - Supports jumps across multiple phases (e.g. ROLLOUT to SPEC)
         """
         self._process_completed_stories()
         self._move_from_backlog_to_spec()
 
-    def start_of_day_processing(self, day: int) -> None:
+    def _update_capacities(self, day: int) -> None:
         """
-        Performs the processing at the start of the day.
-        Moves completed stories from one step to the next.
+        Updates the capacities of all steps based on the ResourcePlan.
+        Uses default values if no plan exists.
 
         Args:
             day: Current simulation day
         """
+        # Default capacities
+        spec_capacity = 2
+        dev_capacity = 3
+        test_capacity = 3
+        rollout_capacity = 1
+
+        # Search for an active ResourcePlan for the current day
+        for plan in self.resource_plans:
+            if plan.start_day <= day <= plan.end_day:
+                spec_capacity = plan.specification_capacity
+                dev_capacity = plan.development_capacity
+                test_capacity = plan.testing_capacity
+                rollout_capacity = plan.rollout_capacity
+                break
+
+        # Update step capacities
+        self.spec_step.capacity = spec_capacity
+        self.dev_step.capacity = dev_capacity
+        self.test_step.capacity = test_capacity
+        self.rollout_step.capacity = rollout_capacity
+
+    def start_of_day_processing(self, day: int) -> None:
+        """
+        Performs the processing at the start of the day.
+        Updates capacities and moves completed stories.
+
+        Args:
+            day: Current simulation day
+        """
+        self._update_capacities(day)
         self._move_completed_stories()
 
     def day_processing(self, day: int) -> None:
