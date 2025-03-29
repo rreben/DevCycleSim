@@ -61,6 +61,16 @@ class ProcessStep:
         """
         self.input_queue = np.append(self.input_queue, [story])
 
+    def add_in_front(self, story: UserStory) -> None:
+        """
+        Adds a user story to the front of the input queue.
+        Used for high priority stories that need immediate attention.
+
+        Args:
+            story: The user story to be added at the front
+        """
+        self.input_queue = np.insert(self.input_queue, 0, story)
+
     def pluck(self) -> Optional[UserStory]:
         """
         Removes and returns the first user story from the done queue.

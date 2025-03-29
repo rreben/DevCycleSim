@@ -58,34 +58,92 @@ class Process:
         """
         self.backlog = np.append(self.backlog, [story])
 
-    def _move_completed_stories(self) -> None:
+    def _get_phase_step_mapping(self) -> dict:
         """
-        Moves completed stories between process steps and updates their status.
-        Stories are moved in reverse order (ROLLOUT -> TEST -> DEV -> SPEC)
-        to prevent blocking.
-        Also moves stories from backlog to SPEC input queue
-        considering available capacity.
+        Erstellt ein Mapping von Phasen zu ProcessSteps.
+
+        Returns:
+            Dictionary mit Phase -> ProcessStep Zuordnung
         """
-        # Move completed stories from ROLLOUT to finished_work
-        while (story := self.rollout_step.pluck()) is not None:
-            self.finished_work = np.append(self.finished_work, [story])
+        return {
+            Phase.SPEC: self.spec_step,
+            Phase.DEV: self.dev_step,
+            Phase.TEST: self.test_step,
+            Phase.ROLLOUT: self.rollout_step
+        }
 
-        # Move completed stories from TEST to ROLLOUT
-        while (story := self.test_step.pluck()) is not None:
-            story.status = StoryStatus.PENDING
-            self.rollout_step.add(story)
+    def _move_story_to_target(
+        self,
+        story: UserStory,
+        current_step: ProcessStep,
+        target_step: ProcessStep
+    ) -> None:
+        """
+        Verschiebt eine Story zum Ziel-Step.
+        Verwendet add_in_front für Rücksprünge, sonst add.
 
-        # Move completed stories from DEV to TEST
-        while (story := self.dev_step.pluck()) is not None:
-            story.status = StoryStatus.PENDING
-            self.test_step.add(story)
+        Args:
+            story: Die zu verschiebende Story
+            current_step: Aktueller ProcessStep
+            target_step: Ziel ProcessStep
+        """
+        # Reset story status
+        story.status = StoryStatus.PENDING
 
-        # Move completed stories from SPEC to DEV
-        while (story := self.spec_step.pluck()) is not None:
-            story.status = StoryStatus.PENDING
-            self.dev_step.add(story)
+        # Determine if this is a step backwards in the process
+        phase_order = [
+            Phase.SPEC,
+            Phase.DEV,
+            Phase.TEST,
+            Phase.ROLLOUT
+        ]
+        current_idx = phase_order.index(current_step.phase)
+        next_idx = phase_order.index(target_step.phase)
 
-        # Move stories from backlog to SPEC input queue considering capacity
+        if next_idx < current_idx:
+            # Moving backwards - prioritize with add_in_front
+            target_step.add_in_front(story)
+        else:
+            # Normal flow (same phase or forward) - use regular add
+            target_step.add(story)
+
+    def _process_completed_stories(self) -> None:
+        """
+        Verarbeitet fertige Stories aus allen Process Steps.
+        Verschiebt Stories entsprechend ihrer nächsten Phase.
+        """
+        phase_to_step = self._get_phase_step_mapping()
+        steps = [
+            self.rollout_step,
+            self.test_step,
+            self.dev_step,
+            self.spec_step
+        ]
+
+        for current_step in steps:
+            stories_to_process = []
+            while (story := current_step.pluck()) is not None:
+                stories_to_process.append(story)
+
+            for story in stories_to_process:
+                if story.current_phase is None:
+                    # Story is completely done
+                    if current_step == self.rollout_step:
+                        self.finished_work = np.append(
+                            self.finished_work, [story]
+                        )
+                    continue
+
+                # Move story to its next phase
+                next_phase = story.current_phase
+                target_step = phase_to_step[next_phase]
+                self._move_story_to_target(story, current_step, target_step)
+
+    def _move_from_backlog_to_spec(self) -> None:
+        """
+        Verschiebt Stories aus dem Backlog in die SPEC Input Queue,
+        unter Berücksichtigung der verfügbaren Kapazität.
+        """
         available_capacity = (
             self.spec_step.capacity
             - self.spec_step.count_work_in_progress()
@@ -95,7 +153,6 @@ class Process:
         stories_to_move = []
         remaining_stories = []
 
-        # Sort stories into two groups: to be moved and to remain in backlog
         for story in self.backlog:
             if available_capacity > 0:
                 stories_to_move.append(story)
@@ -110,6 +167,20 @@ class Process:
         for story in stories_to_move:
             story.status = StoryStatus.PENDING
             self.spec_step.add(story)
+
+    def _move_completed_stories(self) -> None:
+        """
+        Verschiebt fertige Stories zwischen den Process Steps.
+        Verarbeitet Steps in umgekehrter Reihenfolge (ROLLOUT -> SPEC)
+        um Blockierungen zu vermeiden.
+
+        Spezielle Behandlung für Stories die Nacharbeit benötigen:
+        - Erkennt Stories die zurück zu einer früheren Phase müssen
+        - Verwendet add_in_front um diese Fälle zu priorisieren
+        - Unterstützt Sprünge über mehrere Phasen (z.B. ROLLOUT zu SPEC)
+        """
+        self._process_completed_stories()
+        self._move_from_backlog_to_spec()
 
     def start_of_day_processing(self, day: int) -> None:
         """
