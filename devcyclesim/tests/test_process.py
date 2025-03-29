@@ -9,7 +9,7 @@ def test_process_sunny_path():
     Verifies the state after each simulation day.
     """
     # Create process with 5 simulation days
-    process = Process(simulation_days=5)
+    process = Process(simulation_days=7)
 
     # Create three stories with different phase durations
     story1 = UserStory.from_phase_durations(
@@ -69,6 +69,7 @@ def test_process_sunny_path():
     # Story-3 will be delivered to Spec the next morning
     process.process_day(1)
     day1_stats = process.get_statistics()[-1]
+    assert day1_stats.spec_stats.capacity == 2
     assert day1_stats.backlog_count == 1  # Story3
     assert day1_stats.finished_work_count == 0  # No stories finished yet
     assert day1_stats.spec_stats.work_in_progress_count == 1
@@ -161,3 +162,240 @@ def test_process_sunny_path():
     assert day7_stats.rollout_stats.input_queue_count == 0
     assert day7_stats.rollout_stats.work_in_progress_count == 0
     assert day7_stats.rollout_stats.done_count == 0
+
+
+def test_process_with_drop_in_dev_capacity_path():
+    """
+    Tests the collection and evaluation of process statistics
+    with a capacity drop in the DEV phase.
+    """
+    # Create process with 7 simulation days
+    process = Process(simulation_days=7)
+
+    # Create three stories with different phase durations
+    story1 = UserStory.from_phase_durations(
+        "STORY-1",
+        phase_durations={
+            Phase.SPEC: 1,
+            Phase.DEV: 3,
+            Phase.TEST: 2,
+            Phase.ROLLOUT: 1
+        }
+    )
+
+    story2 = UserStory.from_phase_durations(
+        "STORY-2",
+        phase_durations={
+            Phase.SPEC: 2,
+            Phase.DEV: 3,
+            Phase.TEST: 3,
+            Phase.ROLLOUT: 1
+        }
+    )
+
+    story3 = UserStory.from_phase_durations(
+        "STORY-3",
+        phase_durations={
+            Phase.SPEC: 1,
+            Phase.DEV: 2,
+            Phase.TEST: 2,
+            Phase.ROLLOUT: 1
+        }
+    )
+
+    # Add stories to process
+    process.add(story1)
+    process.add(story2)
+    process.add(story3)
+
+    # Array für die Statistiken
+    daily_stats = []
+
+    # day 1
+    # Story-1: Spec 1/1, ready for dev
+    # Story-2: Spec 1/2, not ready
+    # Story-3: wait in Backlog
+    process.process_day(1)
+    stats = process.get_statistics()[-1]
+    daily_stats.append(stats)
+    assert stats.backlog_count == 1
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 1
+    assert stats.spec_stats.done_count == 1
+    assert stats.dev_stats.capacity == 3
+    assert stats.dev_stats.work_in_progress_count == 0
+    assert stats.dev_stats.input_queue_count == 0
+    assert stats.dev_stats.done_count == 0
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 0
+    assert stats.test_stats.done_count == 0
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 0
+    assert stats.finished_work_count == 0
+
+    # day 2
+    # Story-1: Dev 1/3, not ready
+    # Story-2: Spec 2/2, ready for dev
+    # Story-3: Spec 1/1, redy for dev
+    process.process_day(2)
+    stats = process.get_statistics()[-1]
+    daily_stats.append(stats)
+    assert stats.backlog_count == 0
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 0
+    assert stats.spec_stats.done_count == 2
+    assert stats.dev_stats.capacity == 3
+    assert stats.dev_stats.input_queue_count == 0
+    assert stats.dev_stats.work_in_progress_count == 1
+    assert stats.dev_stats.done_count == 0
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 0
+    assert stats.test_stats.done_count == 0
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 0
+    assert stats.finished_work_count == 0
+
+    # day 3
+    # Story-1: Dev 2/3, not ready
+    # Story-2: Dev 1/3, not ready
+    # Story-3: Dev 1/2, not ready
+    process.process_day(3)
+    stats = process.get_statistics()[-1]
+    daily_stats.append(stats)
+    assert stats.backlog_count == 0
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 0
+    assert stats.spec_stats.done_count == 0
+    assert stats.dev_stats.capacity == 3
+    assert stats.dev_stats.input_queue_count == 0
+    assert stats.dev_stats.work_in_progress_count == 3
+    assert stats.dev_stats.done_count == 0
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 0
+    assert stats.test_stats.done_count == 0
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 0
+    assert stats.finished_work_count == 0
+
+    # day 4
+    # Now we reduce the capacity in development to 1
+    # Story-1: Dev 3/3, ready for test
+    # Story-2: capa-wating dev still 1/3
+    # Story-3: capa-waitng dev still 1/2
+    process.dev_step.capacity = 1
+    process.process_day(4)
+    stats = process.get_statistics()[-1]
+    daily_stats.append(stats)
+    assert stats.backlog_count == 0
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 0
+    assert stats.spec_stats.done_count == 0
+    assert stats.dev_stats.capacity == 1
+    assert stats.dev_stats.input_queue_count == 2
+    assert stats.dev_stats.work_in_progress_count == 0
+    assert stats.dev_stats.done_count == 1
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 0
+    assert stats.test_stats.done_count == 0
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 0
+    assert stats.finished_work_count == 0
+
+    # day 5
+    # Still reduced capacity in development
+    # Story-1: Test 1/2
+    # Story-2: Dev 2/3
+    # Story-3: capa-waitng dev still 1/2
+    process.process_day(5)
+    stats = process.get_statistics()[-1]
+    daily_stats.append(stats)
+    assert stats.backlog_count == 0
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 0
+    assert stats.spec_stats.done_count == 0
+    assert stats.dev_stats.capacity == 1
+    assert stats.dev_stats.input_queue_count == 1
+    assert stats.dev_stats.work_in_progress_count == 1
+    assert stats.dev_stats.done_count == 0
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 1
+    assert stats.test_stats.done_count == 0
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 0
+    assert stats.finished_work_count == 0
+
+    # day 6
+    # capacity reduced to zero. So dev stops
+    # Story-1: Test 2/2 ready for rollout
+    # Story-2: capa-wating Dev still 2/3
+    # Story-3: capa-waitng dev still 1/2
+    process.dev_step.capacity = 0
+    process.process_day(6)
+    stats = process.get_statistics()[-1]
+    daily_stats.append(stats)
+    assert stats.backlog_count == 0
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 0
+    assert stats.spec_stats.done_count == 0
+    assert stats.dev_stats.capacity == 0
+    assert stats.dev_stats.input_queue_count == 2
+    assert stats.dev_stats.work_in_progress_count == 0
+    assert stats.dev_stats.done_count == 0
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 0
+    assert stats.test_stats.done_count == 1
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 0
+    assert stats.finished_work_count == 0
+
+    # day 7
+    # dev capacity back to 3 againg
+    # Story-1: Rollout 1/1 ready for rollout
+    # Story-2: Dev 3/3 ready for test
+    # Story-3: Dev 2/2 ready for test
+    process.dev_step.capacity = 3
+    process.process_day(6)
+    stats = process.get_statistics()[-1]
+    daily_stats.append(stats)
+    assert stats.backlog_count == 0
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 0
+    assert stats.spec_stats.done_count == 0
+    assert stats.dev_stats.capacity == 3
+    assert stats.dev_stats.input_queue_count == 0
+    assert stats.dev_stats.work_in_progress_count == 0
+    assert stats.dev_stats.done_count == 2
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 0
+    assert stats.test_stats.done_count == 0
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 1
+    assert stats.finished_work_count == 0

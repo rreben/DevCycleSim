@@ -28,8 +28,8 @@ class ProcessStep:
 
     def __post_init__(self):
         """Validates the input parameters"""
-        if self._capacity <= 0:
-            raise ValueError("Capacity must be positive")
+        if self._capacity < 0:
+            raise ValueError("Capacity must not be negative")
 
     @property
     def capacity(self) -> int:
@@ -40,16 +40,16 @@ class ProcessStep:
     def capacity(self, value: int) -> None:
         """
         Sets the capacity to a new value.
-        Validates that the new capacity is positive.
+        Validates that the new capacity is not negative.
 
         Args:
             value: New capacity value
 
         Raises:
-            ValueError: If capacity is not positive
+            ValueError: If capacity is not not negative
         """
-        if value <= 0:
-            raise ValueError("Capacity must be positive")
+        if value < 0:
+            raise ValueError("Capacity must not be negative")
         self._capacity = value
 
     def add(self, story: UserStory) -> None:
