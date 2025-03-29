@@ -408,7 +408,7 @@ def test_process_with_errors_in_user_story():
     with a capacity drop in the DEV phase.
     """
     # Create process with 7 simulation days
-    process = Process(simulation_days=7)
+    process = Process(simulation_days=12)
 
     # Create three stories with different phase durations
     story1 = UserStory.from_phase_durations(
@@ -759,6 +759,73 @@ def test_process_with_errors_in_user_story():
     process.process_day(12)
     stats = process.get_statistics()[-1]
     daily_stats.append(stats)
+    assert stats.backlog_count == 0
+    assert stats.spec_stats.capacity == 2
+    assert stats.spec_stats.input_queue_count == 0
+    assert stats.spec_stats.work_in_progress_count == 0
+    assert stats.spec_stats.done_count == 0
+    assert stats.dev_stats.capacity == 3
+    assert stats.dev_stats.input_queue_count == 0
+    assert stats.dev_stats.work_in_progress_count == 0
+    assert stats.dev_stats.done_count == 0
+    assert stats.test_stats.capacity == 3
+    assert stats.test_stats.input_queue_count == 0
+    assert stats.test_stats.work_in_progress_count == 0
+    assert stats.test_stats.done_count == 0
+    assert stats.rollout_stats.capacity == 1
+    assert stats.rollout_stats.input_queue_count == 0
+    assert stats.rollout_stats.work_in_progress_count == 0
+    assert stats.rollout_stats.done_count == 0
+    assert stats.finished_work_count == 3
+
+
+def test_process_with_automation():
+    """
+    Tests the collection and evaluation of process statistics
+    with a capacity drop in the DEV phase.
+    """
+    # Create process with 7 simulation days
+    process = Process(simulation_days=12)
+
+    # Create three stories with different phase durations
+    story1 = UserStory.from_phase_durations(
+        "STORY-1",
+        phase_durations={
+            Phase.SPEC: 1, Phase.DEV: 4, Phase.TEST: 3, Phase.ROLLOUT: 1},
+    )
+
+    tasks = array(
+        [
+            Task(Phase.SPEC),
+            Task(Phase.DEV),
+            Task(Phase.DEV),
+            Task(Phase.SPEC),  # Rework in specification
+            Task(Phase.DEV),  # Remaining development
+            Task(Phase.DEV),
+            Task(Phase.TEST),
+            Task(Phase.DEV),  # Rework in Dev
+            Task(Phase.TEST),
+            Task(Phase.ROLLOUT),
+        ],
+        dtype=object,
+    )
+
+    story2 = UserStory("STORY-2", tasks=tasks)
+
+    story3 = UserStory.from_phase_durations(
+        "STORY-3",
+        phase_durations={
+            Phase.SPEC: 1, Phase.DEV: 4, Phase.TEST: 3, Phase.ROLLOUT: 1},
+    )
+
+    # Add stories to process
+    process.add(story1)
+    process.add(story2)
+    process.add(story3)
+
+    process.start()
+
+    stats = process.get_statistics()[-1]
     assert stats.backlog_count == 0
     assert stats.spec_stats.capacity == 2
     assert stats.spec_stats.input_queue_count == 0
