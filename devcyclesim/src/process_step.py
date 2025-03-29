@@ -38,7 +38,16 @@ class ProcessStep:
 
     @capacity.setter
     def capacity(self, value: int) -> None:
-        """Sets the capacity to a new value"""
+        """
+        Sets the capacity to a new value.
+        Validates that the new capacity is positive.
+
+        Args:
+            value: New capacity value
+
+        Raises:
+            ValueError: If capacity is not positive
+        """
         if value <= 0:
             raise ValueError("Capacity must be positive")
         self._capacity = value

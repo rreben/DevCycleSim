@@ -19,7 +19,7 @@ def test_process_step_spec_phase():
     spec_step = ProcessStep(
         name="Specification",
         phase=Phase.SPEC,
-        _capacity=1
+        _capacity=1  # Initial capacity
     )
 
     # Create a user story with defined phase durations
@@ -88,7 +88,7 @@ def test_process_step_capacity_reduction():
     spec_step = ProcessStep(
         name="Specification",
         phase=Phase.SPEC,
-        _capacity=2
+        _capacity=2  # Initial capacity
     )
 
     # Create three identical stories
@@ -125,7 +125,7 @@ def test_process_step_capacity_reduction():
         assert work_done[Phase.SPEC] == 1
 
     # Reduce capacity to 1 and process day 2
-    spec_step.capacity = 1
+    spec_step.capacity = 1  # Using the property setter
     spec_step.process_day(2)
 
     # Verify that one story was moved back to input queue
@@ -220,7 +220,7 @@ def test_process_step_wrong_phase():
     dev_step = ProcessStep(
         name="Development",
         phase=Phase.DEV,
-        _capacity=1
+        _capacity=1  # Initial capacity
     )
 
     # Create a story that starts in SPEC phase
