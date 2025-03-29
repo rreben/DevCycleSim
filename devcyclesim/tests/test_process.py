@@ -378,7 +378,7 @@ def test_process_with_drop_in_dev_capacity_path():
     # Story-2: Dev 3/3 ready for test
     # Story-3: Dev 2/2 ready for test
     process.dev_step.capacity = 3
-    process.process_day(6)
+    process.process_day(7)
     stats = process.get_statistics()[-1]
     daily_stats.append(stats)
     assert stats.backlog_count == 0
