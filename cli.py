@@ -62,24 +62,58 @@ def run(
 
         # Process resource plans
         if resource_plans_file:
-            with open(resource_plans_file, 'r') as f:
-                plans_data = json.load(f)
-                for plan_data in plans_data:
-                    plan = ResourcePlan(
-                        start_day=plan_data['start'],
-                        end_day=plan_data['end'],
-                        specification_capacity=plan_data['resources']['spec'],
-                        development_capacity=plan_data['resources']['dev'],
-                        testing_capacity=plan_data['resources']['test'],
-                        rollout_capacity=plan_data['resources']['rollout']
-                    )
-                    process.add_resource_plan(plan)
+            try:
+                with open(resource_plans_file, 'r') as f:
+                    try:
+                        plans_data = json.load(f)
+                    except json.JSONDecodeError:
+                        msg = (
+                            "Invalid JSON format in resource plans file: "
+                            f"{resource_plans_file}"
+                        )
+                        raise ValueError(msg)
+
+                    for plan_data in plans_data:
+                        try:
+                            plan = ResourcePlan(
+                                start_day=plan_data['start'],
+                                end_day=plan_data['end'],
+                                specification_capacity=(
+                                    plan_data['resources']['spec']
+                                ),
+                                development_capacity=(
+                                    plan_data['resources']['dev']
+                                ),
+                                testing_capacity=(
+                                    plan_data['resources']['test']
+                                ),
+                                rollout_capacity=(
+                                    plan_data['resources']['rollout']
+                                )
+                            )
+                        except KeyError as e:
+                            msg = (
+                                f"Missing required field in resource plan: {e}"
+                            )
+                            raise ValueError(msg)
+                        process.add_resource_plan(plan)
+            except FileNotFoundError:
+                msg = f"Resource plans file not found: {resource_plans_file}"
+                raise ValueError(msg)
 
         if resource_plan:
             for plan_str in resource_plan:
-                start_end, resources = plan_str.split(':')
-                start, end = map(int, start_end.split('-'))
-                spec, dev, test, rollout = map(int, resources.split(','))
+                try:
+                    start_end, resources = plan_str.split(':')
+                    start, end = map(int, start_end.split('-'))
+                    spec, dev, test, rollout = map(int, resources.split(','))
+                except ValueError:
+                    msg = (
+                        f"Invalid resource plan format: {plan_str}. "
+                        'Expected format: "start-end:spec,dev,test,rollout"'
+                    )
+                    raise ValueError(msg)
+
                 plan = ResourcePlan(
                     start_day=start,
                     end_day=end,
@@ -92,24 +126,40 @@ def run(
 
         # Load or generate stories
         if stories_file:
-            with open(stories_file, 'r') as f:
-                stories_data = json.load(f)
-                for story_data in stories_data:
-                    story = UserStory.from_phase_durations(
-                        story_id=story_data['id'],
-                        phase_durations={
-                            Phase.SPEC: story_data.get(
-                                'spec', random.randint(1, 3)),
-                            Phase.DEV: story_data.get(
-                                'dev', random.randint(2, 4)),
-                            Phase.TEST: story_data.get(
-                                'test', random.randint(1, 3)),
-                            Phase.ROLLOUT: story_data.get('rollout', 1)
-                        },
-                        arrival_day=story_data.get('arrival_day', 1),
-                        priority=story_data.get('priority', 1)
-                    )
-                    process.add(story)
+            try:
+                with open(stories_file, 'r') as f:
+                    try:
+                        stories_data = json.load(f)
+                    except json.JSONDecodeError:
+                        msg = (
+                            "Invalid JSON format in stories file: "
+                            f"{stories_file}"
+                        )
+                        raise ValueError(msg)
+
+                    for story_data in stories_data:
+                        try:
+                            story = UserStory.from_phase_durations(
+                                story_id=story_data['id'],
+                                phase_durations={
+                                    Phase.SPEC: story_data.get(
+                                        'spec', random.randint(1, 3)),
+                                    Phase.DEV: story_data.get(
+                                        'dev', random.randint(2, 4)),
+                                    Phase.TEST: story_data.get(
+                                        'test', random.randint(1, 3)),
+                                    Phase.ROLLOUT: story_data.get('rollout', 1)
+                                },
+                                arrival_day=story_data.get('arrival_day', 1),
+                                priority=story_data.get('priority', 1)
+                            )
+                        except KeyError as e:
+                            msg = f"Missing required field in story: {e}"
+                            raise ValueError(msg)
+                        process.add(story)
+            except FileNotFoundError:
+                msg = f"Stories file not found: {stories_file}"
+                raise ValueError(msg)
         elif generate_stories:
             for i in range(generate_stories):
                 story = UserStory.from_phase_durations(
@@ -176,8 +226,12 @@ def run(
 
         # Save or display output
         if output_file:
-            with open(output_file, 'w') as f:
-                f.write(output)
+            try:
+                with open(output_file, 'w') as f:
+                    f.write(output)
+            except IOError:
+                msg = f"Could not write to output file: {output_file}"
+                raise ValueError(msg)
         else:
             click.echo(output)
 
@@ -186,6 +240,13 @@ def run(
 
     except ValueError as e:
         click.echo(f"Error: {str(e)}")
+        raise click.Abort()
+    except Exception as e:
+        click.echo(f"Unexpected error: {str(e)}")
+        if verbose:
+            import traceback
+            click.echo("\nDetailed error information:")
+            click.echo(traceback.format_exc())
         raise click.Abort()
 
 
