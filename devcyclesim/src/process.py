@@ -35,8 +35,8 @@ class ResourcePlan:
                 self.rollout_capacity < 0):
             raise ValueError("Capacities cannot be negative")
 
-        if self.start_day >= self.end_day:
-            raise ValueError("Start day must be before end day")
+        if self.start_day > self.end_day:
+            raise ValueError("Start day must not be after end day")
 
 
 @dataclass
