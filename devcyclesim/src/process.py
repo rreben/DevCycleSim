@@ -110,17 +110,17 @@ class Process:
         for existing_plan in self.resource_plans:
             # Check if start or end day overlaps with existing plan
             start_in_existing = (
-                existing_plan.start_day <= plan.start_day 
+                existing_plan.start_day <= plan.start_day
                 <= existing_plan.end_day
             )
             end_in_existing = (
-                existing_plan.start_day <= plan.end_day 
+                existing_plan.start_day <= plan.end_day
                 <= existing_plan.end_day
             )
             existing_in_new = (
                 plan.start_day <= existing_plan.start_day <= plan.end_day
             )
-            
+
             if start_in_existing or end_in_existing or existing_in_new:
                 raise ValueError(
                     f"Resource plan for days {plan.start_day}-{plan.end_day} "
