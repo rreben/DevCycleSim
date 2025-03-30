@@ -1,4 +1,8 @@
 import click
+import json
+import random
+from devcyclesim.src.process import Process, ResourcePlan
+from devcyclesim.src.user_story import UserStory, Phase
 
 
 @click.group()
@@ -8,8 +12,7 @@ def cli():
 
 
 @cli.command()
-@click.option("--team-size", default=8, help="Größe des Teams")
-@click.option("--duration", default=100, help="Simulationsdauer in Tagen")
+@click.option("--duration", default=14, help="Simulationsdauer in Tagen")
 @click.option(
     "--resource-plan", multiple=True,
     help='Format: "start-end:spec,dev,test,rollout"'
@@ -38,7 +41,6 @@ def cli():
               help="Ausgabedatei (default: stdout)")
 @click.option("--verbose", is_flag=True, help="Detaillierte Ausgabe")
 def run(
-    team_size,
     duration,
     resource_plan,
     resource_plans_file,
@@ -50,22 +52,13 @@ def run(
     verbose,
 ):
     """Führt eine Entwicklungsprozess-Simulation aus."""
-    import json
-    import random
-    from devcyclesim.src.simulation_controller import SimulationController
-    from devcyclesim.src.simulation_controller import ResourcePlan
-    from devcyclesim.src.user_story import UserStory
-
     try:
         # Seed setzen falls angegeben
         if seed is not None:
             random.seed(seed)
 
-        # Controller erstellen
-        controller = SimulationController(
-            total_team_size=team_size,
-            simulation_duration=duration
-        )
+        # Process erstellen
+        process = Process(simulation_days=duration)
 
         # Resource Plans verarbeiten
         if resource_plans_file:
@@ -80,7 +73,7 @@ def run(
                         testing_capacity=plan_data['resources']['test'],
                         rollout_capacity=plan_data['resources']['rollout']
                     )
-                    controller.add_resource_plan(plan)
+                    process.add_resource_plan(plan)
 
         if resource_plan:
             for plan_str in resource_plan:
@@ -95,79 +88,91 @@ def run(
                     testing_capacity=test,
                     rollout_capacity=rollout
                 )
-                controller.add_resource_plan(plan)
-
-        # Wenn keine Resource Plans definiert wurden, Standard-Plan verwenden
-        if not resource_plans_file and not resource_plan:
-            controller = SimulationController.create_with_default_plan(
-                team_size=team_size,
-                simulation_duration=duration
-            )
+                process.add_resource_plan(plan)
 
         # Stories laden oder generieren
         if stories_file:
             with open(stories_file, 'r') as f:
                 stories_data = json.load(f)
                 for story_data in stories_data:
-                    story = UserStory(
+                    story = UserStory.from_phase_durations(
                         story_id=story_data['id'],
                         phase_durations={
-                            "spec": random.randint(1, 5),
-                            "dev": random.randint(1, 5),
-                            "test": random.randint(1, 5),
-                            "rollout": random.randint(1, 5)
-                        }
+                            Phase.SPEC: story_data.get(
+                                'spec', random.randint(1, 3)),
+                            Phase.DEV: story_data.get(
+                                'dev', random.randint(2, 4)),
+                            Phase.TEST: story_data.get(
+                                'test', random.randint(1, 3)),
+                            Phase.ROLLOUT: story_data.get('rollout', 1)
+                        },
+                        arrival_day=story_data.get('arrival_day', 1),
+                        priority=story_data.get('priority', 1)
                     )
-                    controller.specification.enqueue(story)
+                    process.add(story)
         elif generate_stories:
             for i in range(generate_stories):
-                story = UserStory(
+                story = UserStory.from_phase_durations(
                     story_id=f"STORY-{i+1}",
                     phase_durations={
-                        "spec": random.randint(1, 5),
-                        "dev": random.randint(1, 5),
-                        "test": random.randint(1, 5),
-                        "rollout": random.randint(1, 5)
+                        Phase.SPEC: random.randint(1, 3),
+                        Phase.DEV: random.randint(2, 4),
+                        Phase.TEST: random.randint(1, 3),
+                        Phase.ROLLOUT: 1
                     }
                 )
-                controller.specification.enqueue(story)
+                process.add(story)
 
         if verbose:
-            click.echo(
-                f"Starte Simulation mit {team_size} Teammitgliedern "
-                f"für {duration} Tage")
+            click.echo(f"Starte Simulation für {duration} Tage")
 
         # Simulation ausführen
-        if verbose:
-            controller.run_simulation()  # Mit Debug-Ausgaben
-        else:
-            # Debug-Ausgaben in execute_tick temporär deaktivieren
-            original_print = print
-
-            def silent_print(*args, **kwargs):
-                pass
-            import builtins
-            builtins.print = silent_print
-
-            controller.run_simulation()
-
-            # Print-Funktion wiederherstellen
-            builtins.print = original_print
+        process.start()
 
         # Statistiken sammeln
-        stats = controller.get_statistics()
+        stats = process.get_statistics()
+
+        # Statistiken für die Ausgabe aufbereiten
+        stats_dict = {}
+        for day_stat in stats:
+            stats_dict[f"Tag {day_stat.day}"] = {
+                "Backlog": day_stat.backlog_count,
+                "SPEC Input": day_stat.spec_stats.input_queue_count,
+                "SPEC WIP": day_stat.spec_stats.work_in_progress_count,
+                "SPEC Done": day_stat.spec_stats.done_count,
+                "DEV Input": day_stat.dev_stats.input_queue_count,
+                "DEV WIP": day_stat.dev_stats.work_in_progress_count,
+                "DEV Done": day_stat.dev_stats.done_count,
+                "TEST Input": day_stat.test_stats.input_queue_count,
+                "TEST WIP": day_stat.test_stats.work_in_progress_count,
+                "TEST Done": day_stat.test_stats.done_count,
+                "ROLLOUT Input": day_stat.rollout_stats.input_queue_count,
+                "ROLLOUT WIP": day_stat.rollout_stats.work_in_progress_count,
+                "ROLLOUT Done": day_stat.rollout_stats.done_count,
+                "Fertige Stories": day_stat.finished_work_count
+            }
 
         # Ausgabe formatieren
         if output_format == "json":
-            output = json.dumps(stats, indent=2)
+            output = json.dumps(stats_dict, indent=2)
         elif output_format == "csv":
-            output = "Metrik,Wert\n" + "\n".join(
-                f"{k},{v}" for k, v in stats.items()
-            )
+            # Header erstellen
+            headers = ["Tag"] + list(next(iter(stats_dict.values())).keys())
+            rows = [",".join(headers)]
+
+            # Daten hinzufügen
+            for day, day_stats in stats_dict.items():
+                row = [day] + [str(v) for v in day_stats.values()]
+                rows.append(",".join(row))
+
+            output = "\n".join(rows)
         else:  # text
-            output = "Simulationsergebnisse:\n" + "\n".join(
-                f"- {k}: {v}" for k, v in stats.items()
-            )
+            output = "Simulationsergebnisse:\n\n"
+            for day, day_stats in stats_dict.items():
+                output += f"{day}:\n"
+                for metric, value in day_stats.items():
+                    output += f"  {metric}: {value}\n"
+                output += "\n"
 
         # Ausgabe speichern oder anzeigen
         if output_file:
@@ -180,8 +185,8 @@ def run(
             click.echo("\nSimulation abgeschlossen!")
 
     except ValueError as e:
-        click.echo(str(e))  # Gibt die Fehlermeldung aus
-        raise click.Abort()  # Beendet das Programm mit Fehlercode
+        click.echo(f"Fehler: {str(e)}")
+        raise click.Abort()
 
 
 if __name__ == "__main__":
