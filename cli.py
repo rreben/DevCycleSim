@@ -7,12 +7,12 @@ from devcyclesim.src.user_story import UserStory, Phase
 
 @click.group()
 def cli():
-    """DevCycleSim - Eine Simulation für Entwicklungsprozesse."""
+    """DevCycleSim - A simulation for development processes."""
     pass
 
 
 @cli.command()
-@click.option("--duration", default=14, help="Simulationsdauer in Tagen")
+@click.option("--duration", default=14, help="Simulation duration in days")
 @click.option(
     "--resource-plan", multiple=True,
     help='Format: "start-end:spec,dev,test,rollout"'
@@ -20,26 +20,26 @@ def cli():
 @click.option(
     "--resource-plans-file",
     type=click.Path(exists=True),
-    help="JSON-Datei mit Resource Plans",
+    help="JSON file with resource plans",
 )
 @click.option(
     "--stories-file", type=click.Path(exists=True),
-    help="JSON-Datei mit User Stories"
+    help="JSON file with user stories"
 )
 @click.option(
-    "--generate-stories", type=int, help="Anzahl der zu generierenden Stories"
+    "--generate-stories", type=int, help="Number of stories to generate"
 )
 @click.option("--seed", type=int,
-              help="Zufallsseed für reproduzierbare Ergebnisse")
+              help="Random seed for reproducible results")
 @click.option(
     "--output-format",
     type=click.Choice(["text", "json", "csv"]),
     default="text",
-    help="Ausgabeformat",
+    help="Output format",
 )
 @click.option("--output-file", type=click.Path(),
-              help="Ausgabedatei (default: stdout)")
-@click.option("--verbose", is_flag=True, help="Detaillierte Ausgabe")
+              help="Output file (default: stdout)")
+@click.option("--verbose", is_flag=True, help="Detailed output")
 def run(
     duration,
     resource_plan,
@@ -51,16 +51,16 @@ def run(
     output_file,
     verbose,
 ):
-    """Führt eine Entwicklungsprozess-Simulation aus."""
+    """Runs a development process simulation."""
     try:
-        # Seed setzen falls angegeben
+        # Set seed if specified
         if seed is not None:
             random.seed(seed)
 
-        # Process erstellen
+        # Create process
         process = Process(simulation_days=duration)
 
-        # Resource Plans verarbeiten
+        # Process resource plans
         if resource_plans_file:
             with open(resource_plans_file, 'r') as f:
                 plans_data = json.load(f)
@@ -90,7 +90,7 @@ def run(
                 )
                 process.add_resource_plan(plan)
 
-        # Stories laden oder generieren
+        # Load or generate stories
         if stories_file:
             with open(stories_file, 'r') as f:
                 stories_data = json.load(f)
@@ -124,18 +124,18 @@ def run(
                 process.add(story)
 
         if verbose:
-            click.echo(f"Starte Simulation für {duration} Tage")
+            click.echo(f"Starting simulation for {duration} days")
 
-        # Simulation ausführen
+        # Run simulation
         process.start()
 
-        # Statistiken sammeln
+        # Collect statistics
         stats = process.get_statistics()
 
-        # Statistiken für die Ausgabe aufbereiten
+        # Prepare statistics for output
         stats_dict = {}
         for day_stat in stats:
-            stats_dict[f"Tag {day_stat.day}"] = {
+            stats_dict[f"Day {day_stat.day}"] = {
                 "Backlog": day_stat.backlog_count,
                 "SPEC Input": day_stat.spec_stats.input_queue_count,
                 "SPEC WIP": day_stat.spec_stats.work_in_progress_count,
@@ -149,32 +149,32 @@ def run(
                 "ROLLOUT Input": day_stat.rollout_stats.input_queue_count,
                 "ROLLOUT WIP": day_stat.rollout_stats.work_in_progress_count,
                 "ROLLOUT Done": day_stat.rollout_stats.done_count,
-                "Fertige Stories": day_stat.finished_work_count
+                "Finished Stories": day_stat.finished_work_count
             }
 
-        # Ausgabe formatieren
+        # Format output
         if output_format == "json":
             output = json.dumps(stats_dict, indent=2)
         elif output_format == "csv":
-            # Header erstellen
-            headers = ["Tag"] + list(next(iter(stats_dict.values())).keys())
+            # Create header
+            headers = ["Day"] + list(next(iter(stats_dict.values())).keys())
             rows = [",".join(headers)]
 
-            # Daten hinzufügen
+            # Add data
             for day, day_stats in stats_dict.items():
                 row = [day] + [str(v) for v in day_stats.values()]
                 rows.append(",".join(row))
 
             output = "\n".join(rows)
         else:  # text
-            output = "Simulationsergebnisse:\n\n"
+            output = "Simulation Results:\n\n"
             for day, day_stats in stats_dict.items():
                 output += f"{day}:\n"
                 for metric, value in day_stats.items():
                     output += f"  {metric}: {value}\n"
                 output += "\n"
 
-        # Ausgabe speichern oder anzeigen
+        # Save or display output
         if output_file:
             with open(output_file, 'w') as f:
                 f.write(output)
@@ -182,10 +182,10 @@ def run(
             click.echo(output)
 
         if verbose:
-            click.echo("\nSimulation abgeschlossen!")
+            click.echo("\nSimulation completed!")
 
     except ValueError as e:
-        click.echo(f"Fehler: {str(e)}")
+        click.echo(f"Error: {str(e)}")
         raise click.Abort()
 
 
