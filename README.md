@@ -1,64 +1,71 @@
 # DevCycleSim
 
-DevCycleSim is a Python-based simulation framework designed to model agile development processes. It simulates iterative sprints where work items (user stories) flow through Specification, Development, Testing, and Rollout phases—with built-in error handling and rework dynamics—to help you understand process interdependencies and effectively transfer these insights into practice.
+DevCycleSim is a Python-based simulation framework for modeling agile development processes. It simulates the flow of work items (user stories) through the phases of Specification, Development, Testing, and Rollout - with built-in error handling and rework dynamics.
 
 ## Idea
 
-The simulation represents the software development process as a factory where user stories (features/modules) pass through different production stations. Each user story comes with specified durations—in days—for the Specification, Development, Testing, and Rollout phases. For example, one user story might require 1 day for Specification, 2 days for Development, 1 day for Testing, and 1 day for Rollout, while another might require 3, 9, 4, and 1 days, respectively.
+The simulation represents the software development process as a factory where user stories (features/modules) pass through different production stations. Each user story has specific time requirements (in days) for the Specification, Development, Testing, and Rollout phases. For example, a story might require 1 day for Specification, 2 days for Development, 1 day for Testing, and 1 day for Rollout.
 
-A key aspect is that a user story cannot move to the next phase until its current phase is fully completed. In the Specification phase, each person can only work on one user story at a time. Thus, if a user story requires 3 days of Specification, it will occupy one full-time equivalent (FTE) for those 3 days. With a capacity of 4 FTE in the "Specification Machine," up to 4 user stories can be processed concurrently in that phase.
+A key aspect is that a user story can only move to the next phase once its current phase is fully completed. In each phase, one person can only work on one user story at a time. So if a story requires 3 days of specification work, it occupies one full capacity unit for those 3 days. With a capacity of 2 units in the "Specification phase", a maximum of 2 stories can be processed in parallel.
 
-This detailed modeling allows for the exploration of resource constraints and process dynamics, providing valuable insights into how agile practices can be practically applied. The entire process is divided into agile sprints (each consisting of 10 workdays), and various scenarios can be configured—for example, determining when the Testing phase becomes active or how multiple teams synchronize in phases like Testing and Rollout.
+Special features of the simulation:
 
-## CLI Verwendung
+- Flexible resource planning through ResourcePlans that define different capacities for various time periods
+- Detailed statistics for each simulation day
+- Support for rework by returning stories to earlier phases
+- Prioritization of rework through automatic placement at the front of the queue
+- Configurable story generation with random or predefined properties
 
-DevCycleSim bietet ein Kommandozeilen-Interface (CLI) für die Ausführung von Simulationen. Hier sind die wichtigsten Optionen:
+This detailed modeling enables the investigation of resource constraints and process dynamics, providing valuable insights into the practical application of agile practices.
+
+## CLI Usage
+
+DevCycleSim provides a command-line interface (CLI) for running simulations. Here are the main options:
 
 ```bash
 devcyclesim run [OPTIONS]
 ```
 
-### Optionen
+### Options
 
-- `--team-size INTEGER`: Größe des Teams (Standard: 8)
-- `--duration INTEGER`: Simulationsdauer in Tagen (Standard: 100)
-- `--resource-plan TEXT`: Format: "start-end:spec,dev,test,rollout" (mehrfach verwendbar)
-- `--resource-plans-file FILE`: JSON-Datei mit Resource Plans
-- `--stories-file FILE`: JSON-Datei mit User Stories
-- `--generate-stories INTEGER`: Anzahl der zu generierenden Stories
-- `--seed INTEGER`: Zufallsseed für reproduzierbare Ergebnisse
-- `--output-format [text|json|csv]`: Ausgabeformat (Standard: text)
-- `--output-file FILE`: Ausgabedatei (Standard: stdout)
-- `--verbose`: Detaillierte Ausgabe
+- `--duration INTEGER`: Simulation duration in days (default: 14)
+- `--resource-plan TEXT`: Format: "start-end:spec,dev,test,rollout" (can be used multiple times)
+- `--resource-plans-file FILE`: JSON file with resource plans
+- `--stories-file FILE`: JSON file with user stories
+- `--generate-stories INTEGER`: Number of stories to generate
+- `--seed INTEGER`: Random seed for reproducible results
+- `--output-format [text|json|csv]`: Output format (default: text)
+- `--output-file FILE`: Output file (default: stdout)
+- `--verbose`: Detailed output
 
-### Beispiele
+### Examples
 
-1. Einfache Simulation mit Standardwerten:
+1. Simple simulation with default values:
 
     ```bash
     devcyclesim run
     ```
 
-2. Angepasste Simulation mit Resource Plan:
+2. Customized simulation with resource plan:
 
    ```bash
-   devcyclesim run --team-size 10 --duration 50 --resource-plan "0-25:3,4,2,1" --resource-plan "26-50:2,5,2,1"
+    devcyclesim run --duration 50 --resource-plan "1-25:3,4,2,1" --resource-plan "26-50:2,5,2,1"
    ```
 
-3. Simulation mit JSON-Dateien:
+3. Simulation with JSON files:
 
    ```bash
    devcyclesim run --resource-plans-file plans.json --stories-file stories.json
    ```
 
-### JSON-Datei Formate
+### JSON File Formats
 
 #### Resource Plans (resource_plans.json)
 
 ```json
 [
   {
-    "start": 0,
+    "start": 1,
     "end": 20,
     "resources": {
       "spec": 2,
@@ -86,93 +93,120 @@ devcyclesim run [OPTIONS]
 [
   {
     "id": "STORY-1",
-    "phase_durations": {
-      "spec": 2,
-      "dev": 5,
-      "test": 3,
-      "rollout": 1
-    }
+    "spec": 2,
+    "dev": 5,
+    "test": 3,
+    "rollout": 1,
+    "arrival_day": 1,
+    "priority": 1
   },
   {
     "id": "STORY-2",
-    "phase_durations": {
-      "spec": 3,
-      "dev": 8,
-      "test": 4,
-      "rollout": 2
-    }
+    "spec": 3,
+    "dev": 8,
+    "test": 4,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
   }
 ]
 ```
 
-### Ausgabeformate
+### Output Formats
 
-1. Text (Standard):
+1. Text (default):
 
     ```ascii
-    Simulationsergebnisse:
-    - Completed Stories: 5
-    - Stories in Specification: 2
-    - Stories in Development: 3
-    - Stories in Testing: 1
-    - Stories in Rollout: 0
+    Simulation Results:
+
+    Day 1:
+      Backlog: 3
+      SPEC Input: 0
+      SPEC WIP: 2
+      SPEC Done: 0
+      DEV Input: 0
+      DEV WIP: 0
+      DEV Done: 0
+      TEST Input: 0
+      TEST WIP: 0
+      TEST Done: 0
+      ROLLOUT Input: 0
+      ROLLOUT WIP: 0
+      ROLLOUT Done: 0
+      Finished Stories: 0
     ```
 
 2. JSON:
 
     ```json
     {
-      "Completed Stories": 5,
-      "Stories in Specification": 2,
-      "Stories in Development": 3,
-      "Stories in Testing": 1,
-      "Stories in Rollout": 0
+      "Day 1": {
+        "Backlog": 3,
+        "SPEC Input": 0,
+        "SPEC WIP": 2,
+        "SPEC Done": 0,
+        "DEV Input": 0,
+        "DEV WIP": 0,
+        "DEV Done": 0,
+        "TEST Input": 0,
+        "TEST WIP": 0,
+        "TEST Done": 0,
+        "ROLLOUT Input": 0,
+        "ROLLOUT WIP": 0,
+        "ROLLOUT Done": 0,
+        "Finished Stories": 0
+      }
     }
     ```
 
 3. CSV:
 
     ```ascii
-    Metrik,Wert
-    Completed Stories,5
-    Stories in Specification,2
-    Stories in Development,3
-    Stories in Testing,1
-    Stories in Rollout,0
+    Day,Backlog,SPEC Input,SPEC WIP,SPEC Done,DEV Input,DEV WIP,DEV Done,TEST Input,TEST WIP,TEST Done,ROLLOUT Input,ROLLOUT WIP,ROLLOUT Done,Finished Stories
+    1,3,0,2,0,0,0,0,0,0,0,0,0,0,0
     ```
 
-### Hinweise
+### Notes
 
-- Die Summe der Ressourcen in einem Resource Plan darf die Teamgröße nicht überschreiten
-- Wenn kein Resource Plan angegeben wird, wird ein Standardplan verwendet
-- Der Seed-Parameter ermöglicht reproduzierbare Simulationen
-- Im verbose-Modus werden zusätzliche Debug-Informationen ausgegeben
+- Resource plans must not overlap in time
+- If no resource plan is specified, default capacities are used:
+  - SPEC: 2
+  - DEV: 3
+  - TEST: 3
+  - ROLLOUT: 1
+- The seed parameter enables reproducible simulations
+- The verbose mode provides additional debug information
 
 ## Installation
 
-Die Abhängigkeiten können mit `uv` installiert werden. `uv` ist ein schneller Paketmanager für Python, der `pip` ersetzt:
+### Prerequisites
 
-### Installation der Abhängigkeiten
+- Python 3.8 or higher
+- pip or uv (recommended) as package manager
+
+### Installing dependencies
+
+With `uv` (recommended):
 
 ```bash
 uv pip install -r requirements.txt
 ```
 
-Alternativ kann auch `pip` verwendet werden:
+Alternatively with `pip`:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Installation des Pakets
+### Installing the package
 
-Um das Paket im Entwicklungsmodus zu installieren:
+Installation in development mode:
 
 ```bash
 pip install -e .
 ```
 
-Das `-e` Flag installiert das Paket im "editable" Modus, was bedeutet, dass Änderungen am Code sofort wirksam werden, ohne dass Sie das Paket neu installieren müssen.
+The `-e` flag installs the package in "editable" mode, so changes to the code are immediately effective without needing to reinstall the package.
 
 ## DevCycleSim Detailed Model
 
@@ -233,7 +267,7 @@ Each machine represents a production station (phase) in the simulation (e.g., Sp
   The name of the machine (e.g., "Specification", "Development").
 
 - **capacity**  
-  The maximum number of user stories (FTEs) that can be processed concurrently. For example, a Specification Machine with 4 FTEs can work on 4 user stories at the same time.
+  The maximum number of user stories that can be processed concurrently.
 
 - **queue**  
   A FIFO list of user stories waiting to be processed.
@@ -305,111 +339,147 @@ Each specialized machine inherits from the base **Machine** class and can overri
 - **print_statistics()**  
   *Description:* Summarize and display key metrics (such as lead time, total processing time, etc.) at the end of the simulation.
 
-This detailed model provides a clear blueprint for simulating an agile development process with realistic constraints (e.g., FTE capacity and sequential phase progression). Each user story carries its specific phase durations, and each machine processes these stories one takt (day) at a time within a sprint framework.
-
-## Class diagram
+## Class Diagram
 
 ```mermaid
 classDiagram
     class UserStory {
-      - string id
-      - int arrival_day
-      - dict phase_durations
-      - string current_phase
-      - int remaining_days
-      - string status
-      + update_progress()
-      + advance_phase()
-      + is_complete() bool
-      + reset_phase()
+        +string story_id
+        +Task[] tasks
+        +int arrival_day
+        +int priority
+        +StoryStatus status
+        +int current_task_index
+        +process_day(day) bool
+        +start_user_story()
+        +get_phase_durations() dict
+        +get_completed_work() dict
     }
 
-    class Machine {
-      - string name
-      - int capacity
-      - list queue
-      - list active_stories
-      + enqueue(user_story)
-      + start_processing()
-      + process_takt()
-      + complete_stories()
-      + simulate_error()
+    class ProcessStep {
+        +string name
+        +Phase phase
+        +int capacity
+        +UserStory[] input_queue
+        +UserStory[] work_in_progress
+        +UserStory[] done
+        +add(story)
+        +add_in_front(story)
+        +pluck() UserStory
+        +process_day(day)
     }
 
-    class SpecificationMachine {
-      + process_takt()
+    class ResourcePlan {
+        +int start_day
+        +int end_day
+        +int specification_capacity
+        +int development_capacity
+        +int testing_capacity
+        +int rollout_capacity
     }
 
-    class DevelopmentMachine {
-      + process_takt()
+    class Process {
+        +int simulation_days
+        +UserStory[] backlog
+        +UserStory[] finished_work
+        +ProcessStatistic[] statistics
+        +ResourcePlan[] resource_plans
+        +ProcessStep spec_step
+        +ProcessStep dev_step
+        +ProcessStep test_step
+        +ProcessStep rollout_step
+        +add(story)
+        +add_resource_plan(plan)
+        +process_day(day)
+        +start()
     }
 
-    class TestingMachine {
-      + process_takt()
-    }
-
-    class RolloutMachine {
-      + process_takt()
-    }
-
-    class Simulation {
-      - int current_day
-      - int sprint_number
-      - list user_stories
-      - dict machines
-      + run()
-      + process_day()
-      + generate_new_user_stories()
-      + print_statistics()
-    }
-
-    Machine <|-- SpecificationMachine
-    Machine <|-- DevelopmentMachine
-    Machine <|-- TestingMachine
-    Machine <|-- RolloutMachine
-
-    Simulation --> UserStory
-    Simulation --> Machine
+    Process --> UserStory
+    Process --> ProcessStep
+    Process --> ResourcePlan
 ```
 
-## Flowchart
+## Process Flow
 
 ```mermaid
 flowchart TD
-    A[User Story Created]
+    A[User Story Created] --> B[Backlog]
     
-    B[Specification Buffer]
-    C[Specification Processing]
-    D{Specification Complete?}
+    B --> C[SPEC Input Queue]
+    C --> D[SPEC Work in Progress]
+    D --> E{SPEC Done?}
+    E -- No --> D
+    E -- Yes --> F[DEV Input Queue]
     
-    E[Development Buffer]
-    F[Development Processing]
-    G{Development Complete?}
+    F --> G[DEV Work in Progress]
+    G --> H{DEV Done?}
+    H -- No --> G
+    H -- Yes --> I[TEST Input Queue]
     
-    H[Testing Buffer]
-    I[Testing Processing]
-    J{Testing Complete?}
+    I --> J[TEST Work in Progress]
+    J --> K{TEST Done?}
+    K -- No --> J
+    K -- Rework --> F
+    K -- Yes --> L[ROLLOUT Input Queue]
     
-    K[Rollout Buffer]
-    L[Rollout Processing]
-    M[User Story Completed]
-    
-    A --> B
-    B --> C
-    C --> D
-    D -- Yes --> E
-    D -- No --> C
-    
-    E --> F
-    F --> G
-    G -- Yes --> H
-    G -- No --> F
-    
-    H --> I
-    I --> J
-    J -- Yes --> K
-    J -- No --> I
-    
-    K --> L
-    L --> M
+    L --> M[ROLLOUT Work in Progress]
+    M --> N{ROLLOUT Done?}
+    N -- No --> M
+    N -- Yes --> O[Finished Work]
 ```
+
+## Detailed Model
+
+DevCycleSim is based on a model with four main components:
+
+### UserStory - Class
+
+A UserStory represents a unit of work that flows through the process.
+
+**Attributes:**
+
+- `story_id`: Unique identifier
+- `tasks`: Array of tasks representing work in different phases
+- `arrival_day`: Day when the story enters the process
+- `priority`: Priority of the story
+- `status`: Current status (PENDING, IN_PROGRESS, PHASE_DONE, DONE)
+- `current_task_index`: Index of the current task
+
+### ProcessStep
+
+A ProcessStep represents a phase in the development process.
+
+**Attributes:**
+
+- `name`: Name of the phase
+- `phase`: Associated phase (SPEC, DEV, TEST, ROLLOUT)
+- `capacity`: Current capacity
+- `input_queue`: Queue for incoming stories
+- `work_in_progress`: Stories being processed
+- `done`: Completed stories
+
+### ResourcePlan
+
+A ResourcePlan defines capacities for a specific time period.
+
+**Attributes:**
+
+- `start_day`: First day of the plan
+- `end_day`: Last day of the plan
+- `specification_capacity`: Capacity for SPEC
+- `development_capacity`: Capacity for DEV
+- `testing_capacity`: Capacity for TEST
+- `rollout_capacity`: Capacity for ROLLOUT
+
+### Process
+
+The Process controls the entire simulation flow.
+
+**Attributes:**
+
+- `simulation_days`: Number of days to simulate
+- `backlog`: Array of stories in backlog
+- `finished_work`: Array of completed stories
+- `statistics`: List of process statistics
+- `resource_plans`: List of resource plans
+- Process steps: `spec_step`, `dev_step`, `test_step`, `rollout_step`
