@@ -1,4 +1,5 @@
 from click.testing import CliRunner
+import json
 from cli import cli
 
 
@@ -25,7 +26,6 @@ def test_cli_bottleneck_scenario():
     assert result.exit_code == 0
 
     # Parse JSON output
-    import json
     stats = json.loads(result.output)
 
     # Check results for the last day
@@ -44,7 +44,6 @@ def test_cli_resource_plans_file(tmp_path):
     """
     Test for loading resource plans from a JSON file.
     """
-    import json
     # Create resource plans JSON
     plans_file = str(tmp_path / "resource_plans.json")
     plans_data = [
@@ -108,7 +107,6 @@ def test_cli_stories_file(tmp_path):
     """
     Test for loading stories from a JSON file.
     """
-    import json
     # Create stories JSON
     stories_file = str(tmp_path / "stories.json")
     stories_data = [
@@ -179,7 +177,6 @@ def test_cli_multiple_resource_plans():
     ])
 
     assert result.exit_code == 0
-    import json
     stats = json.loads(result.output)
     assert len(stats) > 0
 
@@ -200,3 +197,80 @@ def test_cli_verbose_output():
     assert result.exit_code == 0
     assert "Starting simulation for 10 days" in result.output
     assert "Simulation completed!" in result.output
+
+
+def test_cli_overlapping_resource_plans():
+    """
+    Test for overlapping resource plans.
+    Verifies that overlapping plans are correctly detected and rejected.
+    """
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        'run',
+        '--duration', '30',
+        '--resource-plan', '1-15:2,3,2,1',
+        '--resource-plan', '10-20:3,4,2,1'  # Overlaps with first plan
+    ])
+
+    assert result.exit_code != 0
+    assert "overlaps with existing plan" in str(result.output)
+    assert "1-15" in str(result.output)
+    assert "10-20" in str(result.output)
+
+
+def test_cli_incomplete_story():
+    """
+    Test for incomplete user story definition.
+    Verifies that stories with missing required fields are rejected.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Create stories JSON with missing required field (id)
+        with open('incomplete_stories.json', 'w') as f:
+            json.dump([
+                {
+                    # "id" field is missing
+                    "spec": 2,
+                    "dev": 5,
+                    "test": 3,
+                    "rollout": 1
+                }
+            ], f)
+
+        result = runner.invoke(cli, [
+            'run',
+            '--duration', '30',
+            '--stories-file', 'incomplete_stories.json'
+        ])
+
+        assert result.exit_code != 0
+        assert "Missing required field in story: 'id'" in str(result.output)
+
+
+def test_cli_negative_story_duration():
+    """
+    Test for user story with negative duration.
+    Verifies that stories with negative phase durations are rejected.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        # Create stories JSON with negative duration in dev phase
+        with open('negative_duration.json', 'w') as f:
+            json.dump([
+                {
+                    "id": "STORY-1",
+                    "spec": 2,
+                    "dev": -3,  # Negative duration
+                    "test": 2,
+                    "rollout": 1
+                }
+            ], f)
+
+        result = runner.invoke(cli, [
+            'run',
+            '--duration', '30',
+            '--stories-file', 'negative_duration.json'
+        ])
+
+        assert result.exit_code != 0
+        assert "All phase durations must be positive" in str(result.output)
