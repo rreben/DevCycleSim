@@ -888,3 +888,86 @@ def test_process_with_automation():
     assert stats.rollout_stats.work_in_progress_count == 0
     assert stats.rollout_stats.done_count == 0
     assert stats.finished_work_count == 3
+
+
+def test_resource_plan_validation():
+    """
+    Tests the validation of overlapping resource plans.
+    Verifies that overlapping plans are rejected.
+    """
+    process = Process(simulation_days=10)
+
+    # Base plan for days 3-5
+    base_plan = ResourcePlan(
+        start_day=3,
+        end_day=5,
+        specification_capacity=2,
+        development_capacity=3,
+        testing_capacity=3,
+        rollout_capacity=1
+    )
+    process.add_resource_plan(base_plan)
+
+    # Test 1: Plan starting within base plan
+    overlapping_start = ResourcePlan(
+        start_day=4,
+        end_day=6,
+        specification_capacity=1,
+        development_capacity=2,
+        testing_capacity=2,
+        rollout_capacity=1
+    )
+    try:
+        process.add_resource_plan(overlapping_start)
+        assert False, "Should raise ValueError for overlapping start"
+    except ValueError as e:
+        assert "overlaps with existing plan" in str(e)
+
+    # Test 2: Plan ending within base plan
+    overlapping_end = ResourcePlan(
+        start_day=2,
+        end_day=4,
+        specification_capacity=1,
+        development_capacity=2,
+        testing_capacity=2,
+        rollout_capacity=1
+    )
+    try:
+        process.add_resource_plan(overlapping_end)
+        assert False, "Should raise ValueError for overlapping end"
+    except ValueError as e:
+        assert "overlaps with existing plan" in str(e)
+
+    # Test 3: Plan completely containing base plan
+    containing_plan = ResourcePlan(
+        start_day=2,
+        end_day=6,
+        specification_capacity=1,
+        development_capacity=2,
+        testing_capacity=2,
+        rollout_capacity=1
+    )
+    try:
+        process.add_resource_plan(containing_plan)
+        assert False, "Should raise ValueError for containing plan"
+    except ValueError as e:
+        assert "overlaps with existing plan" in str(e)
+
+    # Test 4: Non-overlapping plan should be accepted
+    valid_plan = ResourcePlan(
+        start_day=6,
+        end_day=8,
+        specification_capacity=1,
+        development_capacity=2,
+        testing_capacity=2,
+        rollout_capacity=1
+    )
+    try:
+        process.add_resource_plan(valid_plan)
+    except ValueError:
+        assert False, "Should accept non-overlapping plan"
+
+    # Verify that both valid plans are in the list
+    assert len(process.resource_plans) == 2
+    assert process.resource_plans[0] == base_plan
+    assert process.resource_plans[1] == valid_plan

@@ -98,10 +98,36 @@ class Process:
     def add_resource_plan(self, plan: ResourcePlan) -> None:
         """
         Adds a ResourcePlan to the list of resource plans.
+        Validates that the plan does not overlap with existing plans.
 
         Args:
             plan: The ResourcePlan to be added
+
+        Raises:
+            ValueError: If the plan overlaps with an existing plan
         """
+        # Check for overlaps with existing plans
+        for existing_plan in self.resource_plans:
+            # Check if start or end day overlaps with existing plan
+            start_in_existing = (
+                existing_plan.start_day <= plan.start_day 
+                <= existing_plan.end_day
+            )
+            end_in_existing = (
+                existing_plan.start_day <= plan.end_day 
+                <= existing_plan.end_day
+            )
+            existing_in_new = (
+                plan.start_day <= existing_plan.start_day <= plan.end_day
+            )
+            
+            if start_in_existing or end_in_existing or existing_in_new:
+                raise ValueError(
+                    f"Resource plan for days {plan.start_day}-{plan.end_day} "
+                    f"overlaps with existing plan for days "
+                    f"{existing_plan.start_day}-{existing_plan.end_day}"
+                )
+
         self.resource_plans.append(plan)
 
     def _get_phase_step_mapping(self) -> dict:
