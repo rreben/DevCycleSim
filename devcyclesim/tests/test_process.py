@@ -1,5 +1,5 @@
 from numpy import array
-from devcyclesim.src.process import Process
+from devcyclesim.src.process import Process, ResourcePlan
 from devcyclesim.src.user_story import UserStory, Phase, Task
 
 
@@ -209,6 +209,53 @@ def test_process_with_drop_in_dev_capacity_path():
     process.add(story2)
     process.add(story3)
 
+    # Define resource plans for different capacity phases
+    # Normal capacity for days 1-3
+    normal_capacity = ResourcePlan(
+        start_day=1,
+        end_day=3,
+        specification_capacity=2,
+        development_capacity=3,
+        testing_capacity=3,
+        rollout_capacity=1
+    )
+
+    # Reduced capacity for days 4-5
+    reduced_capacity = ResourcePlan(
+        start_day=4,
+        end_day=5,
+        specification_capacity=2,
+        development_capacity=1,
+        testing_capacity=3,
+        rollout_capacity=1
+    )
+
+    # No dev capacity for day 6
+    no_dev_capacity = ResourcePlan(
+        start_day=6,
+        end_day=6,
+        specification_capacity=2,
+        development_capacity=0,
+        testing_capacity=3,
+        rollout_capacity=1
+    )
+
+    # Back to normal capacity for day 7
+    final_capacity = ResourcePlan(
+        start_day=7,
+        end_day=7,
+        specification_capacity=2,
+        development_capacity=3,
+        testing_capacity=3,
+        rollout_capacity=1
+    )
+
+    # Add resource plans to process
+    process.add_resource_plan(normal_capacity)
+    process.add_resource_plan(reduced_capacity)
+    process.add_resource_plan(no_dev_capacity)
+    process.add_resource_plan(final_capacity)
+
     # Array für die Statistiken
     daily_stats = []
 
@@ -295,7 +342,6 @@ def test_process_with_drop_in_dev_capacity_path():
     # Story-1: Dev 3/3, ready for test
     # Story-2: capa-wating dev still 1/3
     # Story-3: capa-waitng dev still 1/2
-    process.dev_step.capacity = 1
     process.process_day(4)
     stats = process.get_statistics()[-1]
     daily_stats.append(stats)
@@ -304,7 +350,7 @@ def test_process_with_drop_in_dev_capacity_path():
     assert stats.spec_stats.input_queue_count == 0
     assert stats.spec_stats.work_in_progress_count == 0
     assert stats.spec_stats.done_count == 0
-    assert stats.dev_stats.capacity == 1
+    assert stats.dev_stats.capacity == 1  # Using ResourcePlan
     assert stats.dev_stats.input_queue_count == 2
     assert stats.dev_stats.work_in_progress_count == 0
     assert stats.dev_stats.done_count == 1
@@ -331,7 +377,7 @@ def test_process_with_drop_in_dev_capacity_path():
     assert stats.spec_stats.input_queue_count == 0
     assert stats.spec_stats.work_in_progress_count == 0
     assert stats.spec_stats.done_count == 0
-    assert stats.dev_stats.capacity == 1
+    assert stats.dev_stats.capacity == 1  # Using ResourcePlan
     assert stats.dev_stats.input_queue_count == 1
     assert stats.dev_stats.work_in_progress_count == 1
     assert stats.dev_stats.done_count == 0
@@ -350,7 +396,6 @@ def test_process_with_drop_in_dev_capacity_path():
     # Story-1: Test 2/2 ready for rollout
     # Story-2: capa-wating Dev still 2/3
     # Story-3: capa-waitng dev still 1/2
-    process.dev_step.capacity = 0
     process.process_day(6)
     stats = process.get_statistics()[-1]
     daily_stats.append(stats)
@@ -359,7 +404,7 @@ def test_process_with_drop_in_dev_capacity_path():
     assert stats.spec_stats.input_queue_count == 0
     assert stats.spec_stats.work_in_progress_count == 0
     assert stats.spec_stats.done_count == 0
-    assert stats.dev_stats.capacity == 0
+    assert stats.dev_stats.capacity == 0  # Using ResourcePlan
     assert stats.dev_stats.input_queue_count == 2
     assert stats.dev_stats.work_in_progress_count == 0
     assert stats.dev_stats.done_count == 0
@@ -378,7 +423,6 @@ def test_process_with_drop_in_dev_capacity_path():
     # Story-1: Rollout 1/1 ready for rollout
     # Story-2: Dev 3/3 ready for test
     # Story-3: Dev 2/2 ready for test
-    process.dev_step.capacity = 3
     process.process_day(7)
     stats = process.get_statistics()[-1]
     daily_stats.append(stats)
@@ -387,7 +431,7 @@ def test_process_with_drop_in_dev_capacity_path():
     assert stats.spec_stats.input_queue_count == 0
     assert stats.spec_stats.work_in_progress_count == 0
     assert stats.spec_stats.done_count == 0
-    assert stats.dev_stats.capacity == 3
+    assert stats.dev_stats.capacity == 3  # Using ResourcePlan
     assert stats.dev_stats.input_queue_count == 0
     assert stats.dev_stats.work_in_progress_count == 0
     assert stats.dev_stats.done_count == 2
