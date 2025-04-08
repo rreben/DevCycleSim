@@ -23,7 +23,7 @@ This detailed modeling enables the investigation of resource constraints and pro
 DevCycleSim provides a command-line interface (CLI) for running simulations. Here are the main options:
 
 ```bash
-python -m cli run [OPTIONS]
+devcyclesim run [OPTIONS]
 ```
 
 ### Options
