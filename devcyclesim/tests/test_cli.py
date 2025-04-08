@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 import json
-from cli import cli
+from devcyclesim.src.cli import cli
 
 
 def test_cli_bottleneck_scenario():

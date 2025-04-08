@@ -1,3 +1,4 @@
+# type: ignore
 from setuptools import setup, find_packages
 
 setup(
@@ -7,10 +8,11 @@ setup(
     include_package_data=True,
     install_requires=[
         'Click',
+        'numpy',
     ],
     entry_points={
         'console_scripts': [
-            'devcyclesim=devcyclesim.cli:cli',
+            'devcyclesim=devcyclesim.src.cli:cli',
         ],
     },
 )
