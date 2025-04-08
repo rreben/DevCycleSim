@@ -214,11 +214,11 @@ def run(
             serializable_completion_dates = {}
             for story_id, dates in final_completion_dates.items():
                 completed = [
-                    (phase.name, day) 
+                    (phase.name, day)
                     for phase, day in dates["completed"]
                 ]
                 pending = [
-                    (phase.name, day) 
+                    (phase.name, day)
                     for phase, day in dates["pending"]
                 ]
                 serializable_completion_dates[story_id] = {
