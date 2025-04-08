@@ -184,6 +184,12 @@ def run(
 
         # Prepare statistics for output
         stats_dict = {}
+        final_completion_dates = {}
+
+        # Get completion dates from the last day's statistics
+        if stats:
+            final_completion_dates = stats[-1].task_completion_dates
+
         for day_stat in stats:
             stats_dict[f"Day {day_stat.day}"] = {
                 "Backlog": day_stat.backlog_count,
@@ -204,25 +210,77 @@ def run(
 
         # Format output
         if output_format == "json":
-            output = json.dumps(stats_dict, indent=2)
+            # Convert Phase objects to strings for JSON serialization
+            serializable_completion_dates = {}
+            for story_id, dates in final_completion_dates.items():
+                completed = [
+                    (phase.name, day) 
+                    for phase, day in dates["completed"]
+                ]
+                pending = [
+                    (phase.name, day) 
+                    for phase, day in dates["pending"]
+                ]
+                serializable_completion_dates[story_id] = {
+                    "completed": completed,
+                    "pending": pending
+                }
+
+            # For JSON, include completion dates in a separate section
+            output_data = {
+                "daily_statistics": stats_dict,
+                "task_completion_dates": serializable_completion_dates
+            }
+            output = json.dumps(output_data, indent=2)
         elif output_format == "csv":
             # Create header
             headers = ["Day"] + list(next(iter(stats_dict.values())).keys())
             rows = [",".join(headers)]
 
-            # Add data
+            # Add daily statistics
             for day, day_stats in stats_dict.items():
                 row = [day] + [str(v) for v in day_stats.values()]
                 rows.append(",".join(row))
 
+            # Add completion dates in a separate section
+            if final_completion_dates:
+                rows.append("")  # Empty line as separator
+                rows.append("Task Completion Summary")
+                for story_id, dates in final_completion_dates.items():
+                    rows.append(f"Story {story_id}")
+                    if dates["completed"]:
+                        rows.append("Completed Tasks")
+                        for phase, day in dates["completed"]:
+                            rows.append(f"{phase.name},Day {day}")
+                    if dates["pending"]:
+                        rows.append("Pending Tasks")
+                        for phase, _ in dates["pending"]:
+                            rows.append(f"{phase.name},Not completed")
+
             output = "\n".join(rows)
         else:  # text
+            # First add daily statistics
             output = "Simulation Results:\n\n"
             for day, day_stats in stats_dict.items():
                 output += f"{day}:\n"
                 for metric, value in day_stats.items():
                     output += f"  {metric}: {value}\n"
                 output += "\n"
+
+            # Then add completion dates summary at the end
+            if final_completion_dates:
+                output += "Task Completion Summary:\n"
+                output += "-" * 50 + "\n"
+                for story_id, dates in final_completion_dates.items():
+                    output += f"\nStory {story_id}:\n"
+                    if dates["completed"]:
+                        output += "  Completed Tasks:\n"
+                        for phase, day in dates["completed"]:
+                            output += f"    {phase.name}: Day {day}\n"
+                    if dates["pending"]:
+                        output += "  Pending Tasks:\n"
+                        for phase, _ in dates["pending"]:
+                            output += f"    {phase.name}: Not completed\n"
 
         # Save or display output
         if output_file:

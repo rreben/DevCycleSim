@@ -22,11 +22,22 @@ def test_cli_bottleneck_scenario():
         '--seed', '42'  # For reproducibility
     ])
 
+    # Debug output - immer ausgeben
+    print("\n=== Debug Information ===")
+    print(f"Exit Code: {result.exit_code}")
+    print(f"Exception Type: {type(result.exception)}")
+    print(f"Exception: {result.exception}")
+    print("Output:")
+    print(result.output)
+    print("=== End Debug Information ===\n")
+
     # Check successful execution
-    assert result.exit_code == 0
+    assert result.exit_code == 0, f"CLI failed with: {result.output}"
 
     # Parse JSON output
-    stats = json.loads(result.output)
+    data = json.loads(result.output)
+    assert "daily_statistics" in data
+    stats = data["daily_statistics"]
 
     # Check results for the last day
     last_day = max(stats.keys())
@@ -274,3 +285,57 @@ def test_cli_negative_story_duration():
 
         assert result.exit_code != 0
         assert "All phase durations must be positive" in str(result.output)
+
+
+def test_cli_task_completion_summary():
+    """
+    Test für die Task Completion Summary.
+    Überprüft:
+    - Korrekte Anzeige der Task Completion Summary am Ende
+    - Format der Ausgabe für verschiedene Output-Formate
+    """
+    runner = CliRunner()
+
+    # Test für Text-Format
+    text_result = runner.invoke(cli, [
+        'run',
+        '--duration', '20',
+        '--generate-stories', '2',
+        '--seed', '42',  # Für Reproduzierbarkeit
+        '--output-format', 'text'
+    ])
+
+    assert text_result.exit_code == 0
+    assert "Task Completion Summary:" in text_result.output
+    assert "Story STORY-1:" in text_result.output
+    assert "Completed Tasks:" in text_result.output
+    assert "SPEC: Day" in text_result.output
+
+    # Test für JSON-Format
+    json_result = runner.invoke(cli, [
+        'run',
+        '--duration', '20',
+        '--generate-stories', '2',
+        '--seed', '42',
+        '--output-format', 'json'
+    ])
+
+    assert json_result.exit_code == 0
+    data = json.loads(json_result.output)
+    assert "daily_statistics" in data
+    assert "task_completion_dates" in data
+    assert len(data["task_completion_dates"]) > 0
+
+    # Test für CSV-Format
+    csv_result = runner.invoke(cli, [
+        'run',
+        '--duration', '20',
+        '--generate-stories', '2',
+        '--seed', '42',
+        '--output-format', 'csv'
+    ])
+
+    assert csv_result.exit_code == 0
+    assert "Task Completion Summary" in csv_result.output
+    assert "Story STORY-1" in csv_result.output
+    assert "Completed Tasks" in csv_result.output

@@ -195,3 +195,30 @@ class UserStory:
             int: Total number of tasks
         """
         return len(self.tasks)
+
+    def get_task_completion_dates(
+        self
+    ) -> "dict[str, list[tuple[Phase, int]]]":
+        """
+        Returns the completion dates of all tasks.
+
+        Returns:
+            Dict with task completion information:
+            {
+                "completed": [(phase, completion_day), ...],
+                "pending": [(phase, None), ...]
+            }
+        """
+        completed = []
+        pending = []
+
+        for task in self.tasks:
+            if task.status == TaskStatus.DONE:
+                completed.append((task.phase, task.completed_on_day))
+            else:
+                pending.append((task.phase, None))
+
+        return {
+            "completed": completed,
+            "pending": pending
+        }

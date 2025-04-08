@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from devcyclesim.src.process_step import ProcessStep
+from devcyclesim.src.user_story import Phase
 
 
 @dataclass
@@ -50,6 +51,8 @@ class ProcessStatistic:
         dev_stats: Statistics for DEV step
         test_stats: Statistics for TEST step
         rollout_stats: Statistics for ROLLOUT step
+        task_completion_dates: Dictionary mapping story
+        IDs to their task completion dates
     """
     day: int
     backlog_count: int
@@ -58,6 +61,9 @@ class ProcessStatistic:
     dev_stats: StepStatistic
     test_stats: StepStatistic
     rollout_stats: StepStatistic
+    task_completion_dates: (
+        "dict[str, dict[str, list[tuple[Phase, int]]]]"
+    ) = field(default_factory=dict)
 
     @classmethod
     def from_process(cls, process, day: int) -> 'ProcessStatistic':
@@ -71,6 +77,12 @@ class ProcessStatistic:
         Returns:
             ProcessStatistic containing the current state
         """
+        # Collect task completion dates for all stories
+        task_completion_dates = {}
+        for story in process.finished_work:
+            task_completion_dates[story.story_id] = (
+                story.get_task_completion_dates())
+
         return cls(
             day=day,
             backlog_count=len(process.backlog),
@@ -78,14 +90,16 @@ class ProcessStatistic:
             spec_stats=StepStatistic.from_process_step(process.spec_step),
             dev_stats=StepStatistic.from_process_step(process.dev_step),
             test_stats=StepStatistic.from_process_step(process.test_step),
-            rollout_stats=StepStatistic.from_process_step(process.rollout_step)
+            rollout_stats=StepStatistic.from_process_step(
+                process.rollout_step),
+            task_completion_dates=task_completion_dates
         )
 
     def print_statistics(self) -> None:
         """
         Prints a formatted overview of the current process statistics.
-        Shows the number of stories in each queue
-        and the capacity for each step.
+        Shows the number of stories in each queue, the capacity for each step,
+        and task completion dates.
         """
         print(f"\nProcess Statistics - Day {self.day}")
         print("-" * 50)
@@ -116,3 +130,19 @@ class ProcessStatistic:
                     * 100
                 )
                 print(f"  Utilization: {utilization:.1f}%")
+
+        if self.task_completion_dates:
+            print("\nTask Completion Dates:")
+            print("-" * 50)
+            for story_id, completion_info in (
+                self.task_completion_dates.items()
+            ):
+                print(f"\nStory {story_id}:")
+                if completion_info["completed"]:
+                    print("  Completed Tasks:")
+                    for phase, day in completion_info["completed"]:
+                        print(f"    {phase.name}: Day {day}")
+                if completion_info["pending"]:
+                    print("  Pending Tasks:")
+                    for phase, _ in completion_info["pending"]:
+                        print(f"    {phase.name}: Not completed")
