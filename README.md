@@ -22,23 +22,39 @@ This detailed modeling enables the investigation of resource constraints and pro
 
 ### Modelling tasks and user stories
 
+The most basic element in the simulation is a task. To keep things simple a task always takes one day and only one person can work on a task for that day.
+
 ![The most basic element in the simulation is the task](images/This_is_a_task.png)
+
+There are various types of tasks. These tasks belong to phases and can only be worked on the given phase.
 
 ![There are various types of tasks. These tasks belong to phases and can only be worked on the given phase](images/Types_of_tasks.png)
 
+In the simulation we will focus on user stories and there progress through the Software-Development Live Cycle. User stories are modeled as a sequence of tasks.
+
 ![User stories are a sequence of tasks](images/User_story.png)
 
+User stories can be of various sizes. The relation of effort between the different phase can vary between different user stories.
+
 ![User stories can be of various sizes and relation between phases](images/Big_user_story.png)
+
+User stories can be completed by completing each task in the given sequence specified for the given use story.
 
 ![A user story has to be worked on according to the sequence of tasks. A given task has to be worked on in the proper process step or process hase.](images/Task_by_task.png)
 
 ### Modelling errors and rework
 
+We do not simuate errors, instead we model the rework necessary to fix the errors.
+
 ![We do not simuate errors, instead we model the rework necessary to fix the errors](images/Rework.png)
 
 ### Modelling the software development process
 
+We simulate the software development life cycle (SDLC for short) as a sequence of process step. Each process step represents a phase in the SDLC and  can on the specific tasks in each user story. We can think of the process steps like machines in a factory. The parts in a factory are like the user stories in the SDLC. Like parts in a factory the user stories flow through the different process steps.
+
 ![Work from backlog to finished features in production](images/The_software_development_process.png)
+
+The number of ressources for each step are limited and specified for the szenario in the simulation. The number of ressources caps the number of user stories that can be worked on at the given simulation day.
 
 ![The actual work is done in each process step / phase](images/Process_step.png)
 
