@@ -18,6 +18,30 @@ Special features of the simulation:
 
 This detailed modeling enables the investigation of resource constraints and process dynamics, providing valuable insights into the practical application of agile practices.
 
+## How the simulation is working
+
+### Modelling tasks and user stories
+
+![The most basic element in the simulation is the task](images/This_is_a_task.png)
+
+![There are various types of tasks. These tasks belong to phases and can only be worked on the given phase](images/Types_of_tasks.png)
+
+![User stories are a sequence of tasks](images/User_story.png)
+
+![User stories can be of various sizes and relation between phases](images/Big_user_story.png)
+
+![A user story has to be worked on according to the sequence of tasks. A given task has to be worked on in the proper process step or process hase.](images/Task_by_task.png)
+
+### Modelling errors and rework
+
+![We do not simuate errors, instead we model the rework necessary to fix the errors](images/Rework.png)
+
+### Modelling the software development process
+
+![Work from backlog to finished features in production](images/The_software_development_process.png)
+
+![The actual work is done in each process step / phase](images/Process_step.png)
+
 ## CLI Usage
 
 DevCycleSim provides a command-line interface (CLI) for running simulations. Here are the main options:
