@@ -3,8 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-.DS_Store
-
 # Scenarios and data for experiments
 data/
 
@@ -174,3 +172,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+.DS_Store
