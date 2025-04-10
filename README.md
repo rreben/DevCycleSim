@@ -68,13 +68,25 @@ resourceplan. We can set many ressourceplans following each other through teh si
 ### Modelling time
 
 We move user stories, complete tasks in time increments with a fixed "Takt". This is inspired from flow engineering and
-lean production. I think of these time increments as "simulation days". So each day tasks get completed and user stories might move to the next phase if all tasks of the given phase are completed. 
+lean production. I think of these time increments as "simulation days". So each day tasks get completed and user stories might move to the next phase if all tasks of the given phase are completed.
 
 If you want to use hours or some other time increment, you can just reinterpret the "simulation day".
 
 ### How is the simulation working
 
 ![How the simulation algorithm is working](images/Algorithm.png)
+
+The simulation works on several levels. And there is a processing for the start of the day, the main part of the day and the end of the day in the two top-levels:
+
+**Process level:** In the process level user stories are transported from one process-step / machine / SDLC phase to the next. If there are errors / if there is rework necessary user stories might be sent back to previous steps.
+
+**ProcessStep level:** A process level represents a step in the process. There are the steps specification, development, test and roll-out. Each morning (in ```start_of_day_processing()```) the workload is adjusted to capacity (in ```adjust_workload_to_capacity()```). If there are free capacities for the day new user stories are moved from the input queue to the Work-in-Process queue. If a rework comes in it is work on immediately, thus other user_stories might have to be sent back to the input-queue, as they have to wait for free ressources till the rework is done. This situation might also occur if there is a reduction in capacity / ressources in comparison to the previous day.
+
+**UserStory level:** The user story keeps track of the status and the tasks that have been completed so far. When a task is completed the task pointer is moved to the next task (which could be worked on the next day). If this task is another phase. Then the UserStory is set to "complete" for this phase. The ProcessStep will then move it to the "Complete" Queue. Note that we just check whether the next step is from a different phase, as there might be rework. In this sense "complete" means the ressources working in the process step are considering the work done and think it is ready for the next phase.
+
+**Task level:** A task is either done or not done (yet). The day of completion is stored for reporting purposes.
+
+A lot of data is gathered during the simulation. Mostly in the evening (```end_of_day_processing()```).
 
 ## CLI Usage
 
