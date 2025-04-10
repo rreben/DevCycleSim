@@ -58,6 +58,24 @@ The number of ressources for each step are limited and specified for the szenari
 
 ![The actual work is done in each process step / phase](images/Process_step.png)
 
+### Modelling Ressource Allocation
+
+The persons / ressources for each process-step / phase can be allocated and reallocated on a daily basis. We can specify "1-20:2,3,3,1" and "21-30:2,2,2,4" meaning that in the simulation days 1 till 20 we have 2 ressources for specification, 3 for development, three for test and 1 for rollout. From day 21 till day 30 we have 2,2,2,4 respectively. We call this a
+resourceplan. We can set many ressourceplans following each other through teh simulation. We can set process steps to zero ressources. So everything has to wait in the input-queue of that step. By this we can simulate a situation where for example tests and rollouts are only performed in given time intervals.
+
+![Ressource Plan](images/Ressource_plan.png)
+
+### Modelling time
+
+We move user stories, complete tasks in time increments with a fixed "Takt". This is inspired from flow engineering and
+lean production. I think of these time increments as "simulation days". So each day tasks get completed and user stories might move to the next phase if all tasks of the given phase are completed. 
+
+If you want to use hours or some other time increment, you can just reinterpret the "simulation day".
+
+### How is the simulation working
+
+![How the simulation algorithm is working](images/Algorithm.png)
+
 ## CLI Usage
 
 DevCycleSim provides a command-line interface (CLI) for running simulations. Here are the main options:
