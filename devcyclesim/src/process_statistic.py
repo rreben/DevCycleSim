@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from devcyclesim.src.process_step import ProcessStep
 from devcyclesim.src.user_story import Phase
+import numpy as np
 
 
 @dataclass
@@ -47,6 +48,7 @@ class ProcessStatistic:
         day: Current simulation day
         backlog_count: Number of stories in backlog
         finished_work_count: Number of completed stories
+        finished_work: Array of completed stories
         spec_stats: Statistics for SPEC step
         dev_stats: Statistics for DEV step
         test_stats: Statistics for TEST step
@@ -57,6 +59,7 @@ class ProcessStatistic:
     day: int
     backlog_count: int
     finished_work_count: int
+    finished_work: np.ndarray
     spec_stats: StepStatistic
     dev_stats: StepStatistic
     test_stats: StepStatistic
@@ -111,6 +114,7 @@ class ProcessStatistic:
             day=day,
             backlog_count=len(process.backlog),
             finished_work_count=len(process.finished_work),
+            finished_work=process.finished_work,
             spec_stats=StepStatistic.from_process_step(process.spec_step),
             dev_stats=StepStatistic.from_process_step(process.dev_step),
             test_stats=StepStatistic.from_process_step(process.test_step),
@@ -289,7 +293,12 @@ class ProcessStatistic:
             "TEST_completed",
             "ROLLOUT_completed"
         ]
-        all_headers = capacity_headers + completed_headers
+        summary_headers = [
+            "Stories_finished",
+            "Tasks_completed_cumulated",
+            "Tasks_finished_cumulated"
+        ]
+        all_headers = capacity_headers + completed_headers + summary_headers
         return f"Day,{','.join(all_headers)}," + ",".join(story_ids)
 
     def get_task_completion_history_line(self) -> str:
@@ -353,9 +362,31 @@ class ProcessStatistic:
             rollout_completed
         ]
 
+        # Count all completed tasks (including partially finished stories)
+        tasks_completed = 0
+        for dates in self.task_completion_dates.values():
+            story_tasks = dates["completed"]
+            if story_tasks:
+                last_task_day = max(day for _, day in story_tasks)
+                if last_task_day <= self.day:
+                    tasks_completed += len(story_tasks)
+
+        # Count tasks of finished stories by getting total tasks directly
+        tasks_finished = sum(
+            story.get_total_tasks()
+            for story in self.finished_work
+        )
+
+        summary_counts = [
+            str(self.finished_work_count).rjust(3),  # 3-stellig für Stories
+            str(tasks_completed).rjust(4),  # 4-stellig für Tasks
+            str(tasks_finished).rjust(4)  # 4-stellig für Tasks
+        ]
+
         # Combine all parts
         parts = [f"{self.day:3}"]
         parts.extend(capacities)
         parts.extend(completed_counts)
+        parts.extend(summary_counts)
         parts.extend(completions)
         return ",".join(parts)
