@@ -233,31 +233,25 @@ def run(
             }
             output = json.dumps(output_data, indent=2)
         elif output_format == "csv":
-            # Create header
-            headers = ["Day"] + list(next(iter(stats_dict.values())).keys())
-            rows = [",".join(headers)]
-
-            # Add daily statistics
-            for day, day_stats in stats_dict.items():
-                row = [day] + [str(v) for v in day_stats.values()]
-                rows.append(",".join(row))
-
-            # Add completion dates in a separate section
-            if final_completion_dates:
-                rows.append("")  # Empty line as separator
-                rows.append("Task Completion Summary")
-                for story_id, dates in final_completion_dates.items():
-                    rows.append(f"Story {story_id}")
-                    if dates["completed"]:
-                        rows.append("Completed Tasks")
-                        for phase, day in dates["completed"]:
-                            rows.append(f"{phase.name},Day {day}")
-                    if dates["pending"]:
-                        rows.append("Pending Tasks")
-                        for phase, _ in dates["pending"]:
-                            rows.append(f"{phase.name},Not completed")
-
-            output = "\n".join(rows)
+            # Build output string
+            output_parts = [
+                # Main statistics
+                "Queue Statistics",
+                stats[0].get_csv_header(),
+                *[stat.get_csv_line() for stat in stats],
+                "",
+                # Task completion summary
+                "Task Completion Summary",
+                stats[0].get_task_completion_csv_header(),
+                *[stat.get_task_completion_csv_line() for stat in stats],
+                "",
+                # Task completion history
+                "Task Completion History",
+                "S: Specification, D: Development, T: Testing, R: Rollout",
+                stats[0].get_task_completion_history_header(),
+                *[stat.get_task_completion_history_line() for stat in stats]
+            ]
+            output = "\n".join(output_parts)
         else:  # text
             # First add daily statistics
             output = "Simulation Results:\n\n"

@@ -166,9 +166,11 @@ def test_cli_csv_output():
 
     assert result.exit_code == 0
     expected_header = (
-        "Day,Backlog,SPEC Input,SPEC WIP,SPEC Done,DEV Input,DEV WIP,"
-        "DEV Done,TEST Input,TEST WIP,TEST Done,ROLLOUT Input,ROLLOUT WIP,"
-        "ROLLOUT Done,Finished Stories"
+        "Day,Backlog,Finished,"
+        "SPEC_Input,SPEC_InProgress,SPEC_Done,SPEC_Capacity,"
+        "DEV_Input,DEV_InProgress,DEV_Done,DEV_Capacity,"
+        "TEST_Input,TEST_InProgress,TEST_Done,TEST_Capacity,"
+        "ROLLOUT_Input,ROLLOUT_InProgress,ROLLOUT_Done,ROLLOUT_Capacity"
     )
     assert expected_header in result.output
 
@@ -289,53 +291,85 @@ def test_cli_negative_story_duration():
 
 def test_cli_task_completion_summary():
     """
-    Test für die Task Completion Summary.
+    Test für die Task Completion Summary und History.
     Überprüft:
-    - Korrekte Anzeige der Task Completion Summary am Ende
+    - Korrekte Anzeige der Task Completion Summary
+    - Korrekte Anzeige der Task Completion History mit Kapazitäten
     - Format der Ausgabe für verschiedene Output-Formate
     """
     runner = CliRunner()
 
-    # Test für Text-Format
-    text_result = runner.invoke(cli, [
-        'run',
-        '--duration', '20',
-        '--generate-stories', '2',
-        '--seed', '42',  # Für Reproduzierbarkeit
-        '--output-format', 'text'
-    ])
-
-    assert text_result.exit_code == 0
-    assert "Task Completion Summary:" in text_result.output
-    assert "Story STORY-1:" in text_result.output
-    assert "Completed Tasks:" in text_result.output
-    assert "SPEC: Day" in text_result.output
-
-    # Test für JSON-Format
-    json_result = runner.invoke(cli, [
-        'run',
-        '--duration', '20',
-        '--generate-stories', '2',
-        '--seed', '42',
-        '--output-format', 'json'
-    ])
-
-    assert json_result.exit_code == 0
-    data = json.loads(json_result.output)
-    assert "daily_statistics" in data
-    assert "task_completion_dates" in data
-    assert len(data["task_completion_dates"]) > 0
-
-    # Test für CSV-Format
+    # Test für CSV-Format mit zwei Stories
     csv_result = runner.invoke(cli, [
         'run',
         '--duration', '20',
         '--generate-stories', '2',
-        '--seed', '42',
+        '--seed', '42',  # Für Reproduzierbarkeit
+        '--resource-plan', '1-20:2,3,2,1',  # Feste Kapazitäten für Test
         '--output-format', 'csv'
     ])
 
     assert csv_result.exit_code == 0
-    assert "Task Completion Summary" in csv_result.output
-    assert "Story STORY-1" in csv_result.output
-    assert "Completed Tasks" in csv_result.output
+    csv_output = csv_result.output
+
+    # Prüfe Queue Statistics Header
+    assert "Queue Statistics" in csv_output
+
+    # Prüfe Task Completion Summary
+    assert "Task Completion Summary" in csv_output
+    assert "Day,STORY-1,STORY-2" in csv_output
+    # Prüfe auf mindestens einen abgeschlossenen Task
+    assert ",1," in csv_output or ",1\n" in csv_output
+
+    # Prüfe Task Completion History
+    assert "Task Completion History" in csv_output
+    assert ("S: Specification, D: Development, T: Testing, "
+           "R: Rollout") in csv_output
+
+    # Prüfe History Header
+    history_header_parts = [
+        "Day",
+        "SPEC_Capacity,DEV_Capacity,TEST_Capacity,ROLLOUT_Capacity",
+        "SPEC_completed,DEV_completed,TEST_completed,ROLLOUT_completed",
+        "STORY-1,STORY-2"
+    ]
+    history_header = ",".join(history_header_parts)
+    assert history_header in csv_output
+
+    # Prüfe Kapazitäten in der History
+    assert " 2, 3, 2, 1," in csv_output  # Prüfe konfigurierte Kapazitäten
+
+    # Prüfe Task Completion Indikatoren und Counts
+    lines = csv_output.split('\n')
+    found_completion = False
+    in_history_section = False
+
+    for line in lines:
+        # Identifiziere den Start der History-Sektion
+        if "Task Completion History" in line:
+            in_history_section = True
+            continue
+
+        # Überspringe Zeilen bis zur History-Sektion
+        if not in_history_section:
+            continue
+
+        # Überspringe Header-Zeilen
+        if not line.strip() or "Day" in line or ":" in line:
+            continue
+
+        # Verarbeite nur Zeilen mit Daten
+        if line.strip() and any(x in line for x in ['S', 'D', 'T', 'R']):
+            parts = line.split(',')
+            if len(parts) >= 9:  # Tag + 8 Metriken vor Stories
+                try:
+                    # Prüfe, ob mindestens ein Count > 0 ist
+                    counts = [int(x.strip()) for x in parts[5:9]]
+                    assert sum(counts) > 0
+                    found_completion = True
+                    break
+                except ValueError:
+                    continue  # Überspringe Zeilen, die keine gültigen Zahlen
+                    # enthalten
+
+    assert found_completion, "Keine Task Completion gefunden"

@@ -79,6 +79,30 @@ class ProcessStatistic:
         """
         # Collect task completion dates for all stories
         task_completion_dates = {}
+
+        # Collect from backlog
+        for story in process.backlog:
+            task_completion_dates[story.story_id] = (
+                story.get_task_completion_dates())
+
+        # Collect from all process steps
+        for step in [
+            process.spec_step, process.dev_step,
+                process.test_step, process.rollout_step]:
+            # From input queue
+            for story in step.input_queue:
+                task_completion_dates[story.story_id] = (
+                    story.get_task_completion_dates())
+            # From work in progress
+            for story in step.work_in_progress:
+                task_completion_dates[story.story_id] = (
+                    story.get_task_completion_dates())
+            # From done queue
+            for story in step.done:
+                task_completion_dates[story.story_id] = (
+                    story.get_task_completion_dates())
+
+        # Collect from finished work
         for story in process.finished_work:
             task_completion_dates[story.story_id] = (
                 story.get_task_completion_dates())
@@ -146,3 +170,192 @@ class ProcessStatistic:
                     print("  Pending Tasks:")
                     for phase, _ in completion_info["pending"]:
                         print(f"    {phase.name}: Not completed")
+
+    def get_csv_header(self) -> str:
+        """
+        Returns the CSV header for the statistics.
+
+        Returns:
+            str: CSV header line
+        """
+        return (
+            "Day,Backlog,Finished,"
+            "SPEC_Input,SPEC_InProgress,SPEC_Done,SPEC_Capacity,"
+            "DEV_Input,DEV_InProgress,DEV_Done,DEV_Capacity,"
+            "TEST_Input,TEST_InProgress,TEST_Done,TEST_Capacity,"
+            "ROLLOUT_Input,ROLLOUT_InProgress,ROLLOUT_Done,ROLLOUT_Capacity"
+        )
+
+    def get_csv_line(self) -> str:
+        """
+        Returns the statistics as CSV line.
+
+        Returns:
+            str: CSV data line
+        """
+        return (
+            f"{self.day:3},"
+            f"{self.backlog_count:1},"
+            f"{self.finished_work_count:1},"
+            f"{self.spec_stats.input_queue_count:1},"
+            f"{self.spec_stats.work_in_progress_count:1},"
+            f"{self.spec_stats.done_count:1},"
+            f"{self.spec_stats.capacity:1},"
+            f"{self.dev_stats.input_queue_count:1},"
+            f"{self.dev_stats.work_in_progress_count:1},"
+            f"{self.dev_stats.done_count:1},"
+            f"{self.dev_stats.capacity:1},"
+            f"{self.test_stats.input_queue_count:1},"
+            f"{self.test_stats.work_in_progress_count:1},"
+            f"{self.test_stats.done_count:1},"
+            f"{self.test_stats.capacity:1},"
+            f"{self.rollout_stats.input_queue_count:1},"
+            f"{self.rollout_stats.work_in_progress_count:1},"
+            f"{self.rollout_stats.done_count:1},"
+            f"{self.rollout_stats.capacity:1}"
+        )
+
+    def get_task_completion_csv_header(self) -> str:
+        """
+        Returns the CSV header for task completion summary.
+        Contains story_ids of all stories that have been processed.
+
+        Returns:
+            str: CSV header line for task completion summary
+        """
+        # Get all story IDs from the process
+        story_ids = []
+        for story_id in self.task_completion_dates.keys():
+            if story_id not in story_ids:
+                story_ids.append(story_id)
+        return "Day," + ",".join(sorted(story_ids))
+
+    def get_task_completion_csv_line(self) -> str:
+        """
+        Returns a CSV line indicating which stories had task completions
+        on the current day.
+
+        Returns:
+            str: CSV line with 1 for task completions, 0 otherwise
+        """
+        story_ids = sorted(self.task_completion_dates.keys())
+        completions = []
+
+        for story_id in story_ids:
+            # Get completion dates for this story
+            dates = self.task_completion_dates[story_id]
+            # Check if any task was completed on this day
+            completed_today = any(
+                day == self.day
+                for _, day in dates["completed"]
+            )
+            # Check if story has any completed tasks before or on this day
+            has_started = any(
+                day <= self.day
+                for _, day in dates["completed"]
+            )
+            # Output:
+            # - "1" if a task was completed today
+            # - "0" if story has started but no task completed today
+            # - "" (empty) if story hasn't started yet
+            if completed_today:
+                completions.append("1")
+            elif has_started:
+                completions.append("0")
+            else:
+                completions.append(" ")
+
+        return f"{self.day:3}," + ",".join(completions)
+
+    def get_task_completion_history_header(self) -> str:
+        """
+        Returns the CSV header for task completion history.
+        Shows the type of completed tasks:
+        S: Specification, D: Development, T: Testing, R: Rollout
+
+        Returns:
+            str: CSV header line for task completion history
+        """
+        story_ids = sorted(self.task_completion_dates.keys())
+        capacity_headers = [
+            "SPEC_Capacity",
+            "DEV_Capacity",
+            "TEST_Capacity",
+            "ROLLOUT_Capacity"
+        ]
+        completed_headers = [
+            "SPEC_completed",
+            "DEV_completed",
+            "TEST_completed",
+            "ROLLOUT_completed"
+        ]
+        all_headers = capacity_headers + completed_headers
+        return f"Day,{','.join(all_headers)}," + ",".join(story_ids)
+
+    def get_task_completion_history_line(self) -> str:
+        """
+        Returns a CSV line with task type indicators:
+        S: Specification task completed
+        D: Development task completed
+        T: Testing task completed
+        R: Rollout task completed
+        ' ': No task completed today
+        ' ': Story not started yet
+
+        Returns:
+            str: CSV line with task type indicators
+        """
+        story_ids = sorted(self.task_completion_dates.keys())
+        completions = []
+
+        # Add capacities with 2-digit width
+        capacities = [
+            f"{self.spec_stats.capacity:2}",
+            f"{self.dev_stats.capacity:2}",
+            f"{self.test_stats.capacity:2}",
+            f"{self.rollout_stats.capacity:2}"
+        ]
+
+        # Process all stories first to collect completions
+        for story_id in story_ids:
+            # Get completion dates for this story
+            dates = self.task_completion_dates[story_id]
+            # Check which task was completed on this day
+            task_completed_today = None
+            for phase, day in dates["completed"]:
+                if day == self.day:
+                    task_completed_today = phase
+                    break
+
+            # Output the appropriate indicator
+            if task_completed_today:
+                if task_completed_today == Phase.SPEC:
+                    completions.append("S")
+                elif task_completed_today == Phase.DEV:
+                    completions.append("D")
+                elif task_completed_today == Phase.TEST:
+                    completions.append("T")
+                elif task_completed_today == Phase.ROLLOUT:
+                    completions.append("R")
+            else:
+                completions.append(" ")
+
+        # Count completions per phase
+        spec_completed = str(completions.count("S")).rjust(2)
+        dev_completed = str(completions.count("D")).rjust(2)
+        test_completed = str(completions.count("T")).rjust(2)
+        rollout_completed = str(completions.count("R")).rjust(2)
+
+        completed_counts = [
+            spec_completed,
+            dev_completed,
+            test_completed,
+            rollout_completed
+        ]
+
+        # Combine all parts
+        parts = [f"{self.day:3}"]
+        parts.extend(capacities)
+        parts.extend(completed_counts)
+        parts.extend(completions)
+        return ",".join(parts)
