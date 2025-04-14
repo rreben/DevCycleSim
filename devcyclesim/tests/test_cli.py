@@ -331,6 +331,7 @@ def test_cli_task_completion_summary():
         "Day",
         "SPEC_Capacity,DEV_Capacity,TEST_Capacity,ROLLOUT_Capacity",
         "SPEC_completed,DEV_completed,TEST_completed,ROLLOUT_completed",
+        "Stories_finished,Tasks_completed_cumulated,Tasks_finished_cumulated",
         "STORY-1,STORY-2"
     ]
     history_header = ",".join(history_header_parts)
@@ -343,21 +344,21 @@ def test_cli_task_completion_summary():
     lines = csv_output.split('\n')
     found_completion = False
     in_history_section = False
-
+    
     for line in lines:
         # Identifiziere den Start der History-Sektion
         if "Task Completion History" in line:
             in_history_section = True
             continue
-
+        
         # Überspringe Zeilen bis zur History-Sektion
         if not in_history_section:
             continue
-
+            
         # Überspringe Header-Zeilen
         if not line.strip() or "Day" in line or ":" in line:
             continue
-
+            
         # Verarbeite nur Zeilen mit Daten
         if line.strip() and any(x in line for x in ['S', 'D', 'T', 'R']):
             parts = line.split(',')
