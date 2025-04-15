@@ -1,0 +1,92 @@
+[
+  {
+    "id": "STORY-01",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+  {
+    "id": "STORY-02",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+    {
+    "id": "STORY-03",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+    {
+    "id": "STORY-04",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+    {
+    "id": "STORY-05",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+    {
+    "id": "STORY-06",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+  {
+    "id": "STORY-07",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+    {
+    "id": "STORY-08",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+    {
+    "id": "STORY-09",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  },
+    {
+    "id": "STORY-10",
+    "spec": 4,
+    "dev": 6,
+    "test": 6,
+    "rollout": 2,
+    "arrival_day": 1,
+    "priority": 1
+  }
+]

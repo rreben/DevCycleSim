@@ -118,9 +118,9 @@ In the output wie see thow the user stories are processed by the team:
 
 ![User stories are done task by task](images/Processing_of_small_stories.png)
 
-Each row represents a simulation day, the first column is the number of the day in the simulation. So we have to read the diagram from the top to the bottom. 
+Each row represents a simulation day, the first column is the number of the day in the simulation. So we have to read the diagram from the top to the bottom.
 
-The other columns are each representing a user story. Whenever a task is completed by the team, then this shown in the array at the given day for the user story which contains the task. 
+The other columns are each representing a user story. Whenever a task is completed by the team, then this shown in the array at the given day for the user story which contains the task.
 
 The kind of work is indicate by a letter (S: Spec, D: Dev, T: Test, R: Rollout).
 
@@ -135,6 +135,36 @@ The columns in the background indicate the utilization of the team ressources. S
 The first user story (user-story-1) is completed on day 9 (we have 9 tasks in each story). So then after day 9 the burn-down chart is going down. The burn down chart shows the fully completed / finished user-stories (measured in number of tasks). The Work that is done starts on day one (tasks completed cumulative). As we have 9 ressources in the team max 9 tasks can be completed per day. There are twenty user stories in the backlog, so the whole backlog is worth 180 day.
 
 The work is finished after day 28. So 28 days is the lead time for the feature that corresponds to the 20 user-stories.
+
+The work in process is lower then 50. So max < 50 tasks are in process for the whole team.
+
+Efficiency is calculated like so:
+
+```math
+[number of tasks in backlog] / [leadtime] * [teamsize]
+```
+
+So the efficiency is 71%.
+
+## Example 2 - A perfectly balanced schedule but big user stories
+
+So we have the exact same team setup as in example 1. We also have the same feature with 180 days / tasks of work.
+
+However instead of 20 small user stoires, we have 10 big user stories. Each is build like so:
+
+![A small story with 4 Spec, 6 Dev, 6 Test and 2 Rollout Task](images/big_story.png)
+
+With the same considerations we conclude that the team will need at least 18 days to finish the first story.
+
+Again we prepare a json file with the 10 user stories, that you can find in the examples folder. When we run the simulation. We get the following pattern.
+
+![User stories are done task by task](images/Processing_of_big_stories.png)
+
+We can plot the overal work like so:
+
+![The result of the simulation](images/Sim_result_big_stories.png)
+
+The lead time is 36 days. The team is only "fully loaded" on two days. The efficiency is 56 % and there are up to >90 tasks "in the system" for the team (WIP).
 
 ## CLI Usage
 
