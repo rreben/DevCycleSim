@@ -88,6 +88,54 @@ The simulation works on several levels. And there is a processing for the start 
 
 A lot of data is gathered during the simulation. Mostly in the evening (```end_of_day_processing()```).
 
+## Example 1 - A perfectly balanced schedule
+
+Let us study some very simple szenarios. In this example we have the following team:
+
+![A team of 2 Sec, 3 Dev, 3 Test and 1 Rollout](images/Team_perfectly_balanced.png)
+
+Let's say we have a feature that needs a total of 180 person days to get finished. Then in this simple scenario let us assume, that we decompose the work in 20 user stories, each with 9 tasks. Like so:
+
+![A small story with 2 Spec, 3 Dev, 3 Test and 1 Rollout Task](images/small_story.png)
+
+As you can see the number of tasks perfectly matches the capacity within our team. The Team should be able to work very smoothely and efficiently on these stories. There should not be a bottleneck in our team. Every process step has the perfect capacity to do the job.
+
+Although we have 3 Dev ressources in our team, one ressource can only work on one task at a time. This is a good assumption because in order to get coding done developers need some uninterrupted time to do their work. This assumption ensures that you can't speed up the work on user stories beyound the "ideal velocity".
+
+So this means, that the teams needs 9 days to finish the first user story. Not more than two user stories can be specified simultaneously. For Dev and Test this number is 3. Only one user story can be released per day (as there is only one ROLLOUT ressource). So one story per day would be the ideal / fastest velocity.
+
+So how do we run the simulation? First we prepare a json file with 20 of these user stories. You find the json file in the ```examples/example_1``` folder of this repo.
+
+We start the simulation with the following command:
+
+```bash
+devcyclesim run --output-format csv --stories-file examples/example_1/base_small_user_stories.json --duration 50 --resource-plan "1-50:2,3,3,1"
+```
+
+So we simulate for 50 days and we set the size of the team to Spec: 2, Dev: 3, Test: 3, Rollout: 1.
+
+In the output wie see thow the user stories are processed by the team:
+
+![User stories are done task by task](images/Processing_of_small_stories.png)
+
+Each row represents a simulation day, the first column is the number of the day in the simulation. So we have to read the diagram from the top to the bottom. 
+
+The other columns are each representing a user story. Whenever a task is completed by the team, then this shown in the array at the given day for the user story which contains the task. 
+
+The kind of work is indicate by a letter (S: Spec, D: Dev, T: Test, R: Rollout).
+
+Closely inspect this graph. There are some "holes", e.g. on day 5 user story 4 has to wait for dev capacity, because user stories 1,2 and 3 already are in development. So no Dev ressource is available on day 5. The ressource shortage will be gone, when user story 1 is finished in development and is ready for testing.
+
+We can plot the overal work like so:
+
+![The result of the simulation](images/Sim_result_small_stories.png)
+
+The columns in the background indicate the utilization of the team ressources. So from day 9 to day 20 the team is "fully loaded".
+
+The first user story (user-story-1) is completed on day 9 (we have 9 tasks in each story). So then after day 9 the burn-down chart is going down. The burn down chart shows the fully completed / finished user-stories (measured in number of tasks). The Work that is done starts on day one (tasks completed cumulative). As we have 9 ressources in the team max 9 tasks can be completed per day. There are twenty user stories in the backlog, so the whole backlog is worth 180 day.
+
+The work is finished after day 28. So 28 days is the lead time for the feature that corresponds to the 20 user-stories.
+
 ## CLI Usage
 
 DevCycleSim provides a command-line interface (CLI) for running simulations. Here are the main options:
