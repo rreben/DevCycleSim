@@ -4,6 +4,29 @@ from typing import List
 from .process_statistic import ProcessStatistic
 
 
+def get_finished_tasks_per_day(
+        statistics: List[ProcessStatistic]) -> List[int]:
+    """Calculates the cumulative number of tasks in finished stories per day.
+
+    Args:
+        statistics: List of ProcessStatistic objects
+
+    Returns:
+        List of integers with number of tasks in finished stories per day
+    """
+    finished_tasks = []
+
+    for stat in statistics:
+        # Sum up tasks in all finished stories for this day
+        tasks_in_finished_stories = sum(
+            story.get_total_tasks()
+            for story in stat.finished_work
+        )
+        finished_tasks.append(tasks_in_finished_stories)
+
+    return finished_tasks
+
+
 def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     """Creates a stacked bar chart of daily tasks.
 
@@ -24,6 +47,14 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
         'ROLLOUT': [],
         'Cumulated': []
     }
+
+    # Get total number of tasks from last day's data
+    last_day = statistics[-1].get_task_completion_history_line().split(',')
+    # Tasks finished cumulated is at index 11
+    total_tasks = int(last_day[11])
+
+    # Calculate finished tasks per day
+    finished_tasks = get_finished_tasks_per_day(statistics)
 
     for stat in statistics:
         # Get task completion data from history line
@@ -64,6 +95,12 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     ax2 = ax1.twinx()
     ax2.plot(df['Day'], df['Cumulated'], color='tab:blue', linewidth=2,
              label='Tasks completed (cumulative)')
+
+    # Add burndown line
+    remaining_tasks = [total_tasks - ft for ft in finished_tasks]
+    ax2.plot(df['Day'], remaining_tasks, color='red', linewidth=2,
+             label='Tasks remaining in backlog')
+
     ax2.set_ylabel('Number of Tasks')
 
     # Title and legend
@@ -74,17 +111,19 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     line_handles, line_labels = ax2.get_legend_handles_labels()
 
     # 2) Baue pairs: je Bar + (entweder Line im ersten Paar oder leer)
-    #    Wir nehmen an, es gibt genau 4 Bars und 1 Line
+    #    Wir nehmen an, es gibt genau 4 Bars und 2 Lines
     h_SPEC, h_DEV, h_TEST, h_ROLLOUT = bar_handles
     l_SPEC, l_DEV, l_TEST, l_ROLLOUT = bar_labels
-    h_LINE = line_handles[0]
-    l_LINE = line_labels[0]
+    h_LINE1, h_LINE2 = line_handles
+    l_LINE1, l_LINE2 = line_labels
 
-    # 3) Interleaved handles/labels so dass die erste Zeile die LINE enthält
+    # 3) Interleaved handles/labels so dass die erste Zeile die LINEs enthält
     handles = [
-        h_SPEC, None, h_DEV, None, h_TEST, None, h_ROLLOUT, None, None,
-        h_LINE]
-    labels = [l_SPEC, "", l_DEV, "", l_TEST, "", l_ROLLOUT, "", "", l_LINE]
+        h_SPEC, None, h_DEV, None, h_TEST, None, h_ROLLOUT, None,
+        h_LINE1, h_LINE2]
+    labels = [
+        l_SPEC, "", l_DEV, "", l_TEST, "", l_ROLLOUT, "",
+        l_LINE1, l_LINE2]
 
     # 4) Zeichne Legende in 2 Spalten unter dem Plot
     ax1.legend(
