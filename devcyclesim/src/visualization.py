@@ -146,7 +146,7 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
         labels,
         ncol=2,
         loc="lower center",
-        bbox_to_anchor=(0.80, -0.20),
+        bbox_to_anchor=(0.80, -0.30),
         frameon=True,
         facecolor="white",
         framealpha=0.9,
