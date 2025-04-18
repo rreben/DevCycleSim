@@ -79,6 +79,7 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     l_SPEC, l_DEV, l_TEST, l_ROLLOUT = bar_labels
     h_LINE = line_handles[0]
     l_LINE = line_labels[0]
+
     # 3) Interleaved handles/labels so dass die erste Zeile die LINE enthält
     handles = [
         h_SPEC, None, h_DEV, None, h_TEST, None, h_ROLLOUT, None, None,
