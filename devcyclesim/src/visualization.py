@@ -99,7 +99,22 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     # Add burndown line
     remaining_tasks = [total_tasks - ft for ft in finished_tasks]
     ax2.plot(df['Day'], remaining_tasks, color='red', linewidth=2,
-             label='Burndown stories (Tasks remaining)')
+             label='Tasks remaining in backlog')
+
+    # Add work in progress line (completed but not in finished stories)
+    # Tasks_completed_cumulated is at index 10
+    work_in_progress = []
+    for stat in statistics:
+        completion_data = stat.get_task_completion_history_line().split(',')
+        tasks_completed = int(completion_data[10])  # Tasks_completed_cumulated
+        tasks_in_finished = sum(
+            story.get_total_tasks()
+            for story in stat.finished_work
+        )
+        work_in_progress.append(tasks_completed - tasks_in_finished)
+
+    ax2.plot(df['Day'], work_in_progress, color='orange', linewidth=2,
+             label='Tasks in progress (completed)')
 
     ax2.set_ylabel('Number of Tasks')
 
@@ -111,19 +126,19 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     line_handles, line_labels = ax2.get_legend_handles_labels()
 
     # 2) Baue pairs: je Bar + (entweder Line im ersten Paar oder leer)
-    #    Wir nehmen an, es gibt genau 4 Bars und 2 Lines
+    #    Wir nehmen an, es gibt genau 4 Bars und 3 Lines
     h_SPEC, h_DEV, h_TEST, h_ROLLOUT = bar_handles
     l_SPEC, l_DEV, l_TEST, l_ROLLOUT = bar_labels
-    h_LINE1, h_LINE2 = line_handles
-    l_LINE1, l_LINE2 = line_labels
+    h_LINE1, h_LINE2, h_LINE3 = line_handles
+    l_LINE1, l_LINE2, l_LINE3 = line_labels
 
     # 3) Interleaved handles/labels so dass die erste Zeile die LINEs enthält
     handles = [
         h_SPEC, None, h_DEV, None, h_TEST, None, h_ROLLOUT, None,
-        h_LINE1, h_LINE2]
+        h_LINE1, h_LINE2, h_LINE3]
     labels = [
         l_SPEC, "", l_DEV, "", l_TEST, "", l_ROLLOUT, "",
-        l_LINE1, l_LINE2]
+        l_LINE1, l_LINE2, l_LINE3]
 
     # 4) Zeichne Legende in 2 Spalten unter dem Plot
     ax1.legend(
