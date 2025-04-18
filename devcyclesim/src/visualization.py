@@ -45,11 +45,11 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     fig, ax1 = plt.subplots(figsize=(15, 8))
 
     # Create stacked bars (left y-axis)
-    ax1.bar(df['Day'], df['SPEC'], label='SPEC', color='lightblue', 
+    ax1.bar(df['Day'], df['SPEC'], label='SPEC', color='lightblue',
             alpha=0.6)
-    ax1.bar(df['Day'], df['DEV'], bottom=df['SPEC'], 
+    ax1.bar(df['Day'], df['DEV'], bottom=df['SPEC'],
             label='DEV', color='khaki', alpha=0.6)
-    ax1.bar(df['Day'], df['TEST'], 
+    ax1.bar(df['Day'], df['TEST'],
             bottom=df['SPEC'] + df['DEV'],
             label='TEST', color='lightgreen', alpha=0.6)
     ax1.bar(df['Day'], df['ROLLOUT'],
@@ -69,20 +69,36 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     # Title and legend
     plt.title('Simulation Results')
 
-    # Combined legend for both axes, oberhalb des Plots
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
+    # 1) Hole Bar- und Line‑Handles nur einmal
+    bar_handles, bar_labels = ax1.get_legend_handles_labels()
+    line_handles, line_labels = ax2.get_legend_handles_labels()
+
+    # 2) Baue pairs: je Bar + (entweder Line im ersten Paar oder leer)
+    #    Wir nehmen an, es gibt genau 4 Bars und 1 Line
+    h_SPEC, h_DEV, h_TEST, h_ROLLOUT = bar_handles
+    l_SPEC, l_DEV, l_TEST, l_ROLLOUT = bar_labels
+    h_LINE = line_handles[0]
+    l_LINE = line_labels[0]
+    # 3) Interleaved handles/labels so dass die erste Zeile die LINE enthält
+    handles = [
+        h_SPEC, None, h_DEV, None, h_TEST, None, h_ROLLOUT, None, None,
+        h_LINE]
+    labels = [l_SPEC, "", l_DEV, "", l_TEST, "", l_ROLLOUT, "", "", l_LINE]
+
+    # 4) Zeichne Legende in 2 Spalten unter dem Plot
     ax1.legend(
-        lines1 + lines2,
-        labels1 + labels2,
-        loc="upper right",  # Ankerpunkt obere rechte Ecke der Legende
-        bbox_to_anchor=(
-            1.0,
-            -0.1,
-        ),  # x=1.0 (rechts am Axes-Rand), y=-0.1 (10% unterhalb)
+        handles,
+        labels,
+        ncol=2,
+        loc="lower center",
+        bbox_to_anchor=(0.80, -0.20),
         frameon=True,
         facecolor="white",
         framealpha=0.9,
+        columnspacing=2.0,
+        handletextpad=0.5,
     )
-    plt.subplots_adjust(bottom=0.2)
+
+    # 5) Unten Platz schaffen
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
