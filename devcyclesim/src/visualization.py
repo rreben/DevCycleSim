@@ -28,7 +28,7 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     for stat in statistics:
         # Get task completion data from history line
         completion_data = stat.get_task_completion_history_line().split(',')
-        
+
         # Indices for completed tasks per phase:
         # SPEC: 5, DEV: 6, TEST: 7, ROLLOUT: 8
         # Cumulated completed tasks: 11
@@ -43,7 +43,7 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
 
     # Create bar chart
     fig, ax1 = plt.subplots(figsize=(15, 8))
-    
+
     # Create stacked bars (left y-axis)
     ax1.bar(df['Day'], df['SPEC'], label='SPEC', color='lightblue', 
             alpha=0.6)
@@ -55,7 +55,7 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     ax1.bar(df['Day'], df['ROLLOUT'],
             bottom=df['SPEC'] + df['DEV'] + df['TEST'],
             label='ROLLOUT', color='lightcoral', alpha=0.6)
-    
+
     ax1.set_xlabel('Day')
     ax1.set_ylabel('Active Resources (Tasks Completed)')
     ax1.grid(True, axis='y')
@@ -68,14 +68,21 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
 
     # Title and legend
     plt.title('Simulation Results')
-    
-    # Combined legend for both axes
+
+    # Combined legend for both axes, oberhalb des Plots
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, 
-               loc='upper right', 
-               facecolor='white', 
-               framealpha=0.9)
-    
-    # Show diagram
+    ax1.legend(
+        lines1 + lines2,
+        labels1 + labels2,
+        loc="upper right",  # Ankerpunkt obere rechte Ecke der Legende
+        bbox_to_anchor=(
+            1.0,
+            -0.1,
+        ),  # x=1.0 (rechts am Axes-Rand), y=-0.1 (10% unterhalb)
+        frameon=True,
+        facecolor="white",
+        framealpha=0.9,
+    )
+    plt.subplots_adjust(bottom=0.2)
     plt.show()
