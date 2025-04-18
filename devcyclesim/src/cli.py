@@ -1,8 +1,9 @@
 import click
 import json
-import random
 from devcyclesim.src.process import Process, ResourcePlan
 from devcyclesim.src.user_story import UserStory, Phase
+from devcyclesim.src.visualization import plot_simulation_results
+import random
 
 
 @click.group()
@@ -40,6 +41,7 @@ def cli():
 @click.option("--output-file", type=click.Path(),
               help="Output file (default: stdout)")
 @click.option("--verbose", is_flag=True, help="Detailed output")
+@click.option('--plot', is_flag=True, help='Plot simulation results')
 def run(
     duration,
     resource_plan,
@@ -50,6 +52,7 @@ def run(
     output_format,
     output_file,
     verbose,
+    plot,
 ):
     """Runs a development process simulation."""
     try:
@@ -178,6 +181,10 @@ def run(
 
         # Run simulation
         process.start()
+
+        # Plot erstellen wenn gewünscht
+        if plot:
+            plot_simulation_results(process.get_statistics())
 
         # Collect statistics
         stats = process.get_statistics()
