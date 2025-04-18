@@ -62,13 +62,13 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
 
         # Indices for completed tasks per phase:
         # SPEC: 5, DEV: 6, TEST: 7, ROLLOUT: 8
-        # Cumulated completed tasks: 11
+        # Tasks_completed_cumulated: 10
         data['Day'].append(stat.day)
         data['SPEC'].append(int(completion_data[5]))
         data['DEV'].append(int(completion_data[6]))
         data['TEST'].append(int(completion_data[7]))
         data['ROLLOUT'].append(int(completion_data[8]))
-        data['Cumulated'].append(int(completion_data[11]))
+        data['Cumulated'].append(int(completion_data[10]))
 
     df = pd.DataFrame(data)
 
