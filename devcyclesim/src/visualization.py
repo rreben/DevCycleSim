@@ -62,7 +62,7 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
 
     # Second y-axis for cumulated tasks
     ax2 = ax1.twinx()
-    ax2.plot(df['Day'], df['Cumulated'], color='tab:blue', linewidth=1,
+    ax2.plot(df['Day'], df['Cumulated'], color='tab:blue', linewidth=2,
              label='Tasks completed (cumulative)')
     ax2.set_ylabel('Number of Tasks')
 
@@ -72,7 +72,10 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     # Combined legend for both axes
     lines1, labels1 = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+    ax1.legend(lines1 + lines2, labels1 + labels2, 
+               loc='upper right', 
+               facecolor='white', 
+               framealpha=0.9)
     
     # Show diagram
     plt.show()
