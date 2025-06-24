@@ -44,9 +44,9 @@ User stories can be completed by completing each task in the given sequence spec
 
 ### Modelling errors and rework
 
-We do not simuate errors, instead we model the rework necessary to fix the errors.
+We do not simulate errors, instead we model the rework necessary to fix the errors.
 
-![We do not simuate errors, instead we model the rework necessary to fix the errors](images/Rework.png)
+![We do not simulate errors, instead we model the rework necessary to fix the errors](images/Rework.png)
 
 ### Modelling the software development process
 
