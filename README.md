@@ -166,6 +166,37 @@ We can plot the overal work like so:
 
 The lead time is 36 days. The team is only "fully loaded" on two days. The efficiency is 56 % and there are up to >90 tasks "in the system" for the team (WIP).
 
+## Example 3
+
+A perfectly balanced plan, however only specification and development overlap here. The tests are started - in the sense of classical system integration tests - only when development is finished. The rollout also only occurs after the tests are completed.
+The comparison with Example 1 shows the dramatic increase in lead time and work in progress due to the non-agile approach.
+
+Even though the rollout phase would probably need to be modeled differently and is shorter compared to the other phases, the effect on lead time can already be demonstrated in this simple modeling scenario.
+
+We adapt the resource plans so that they fit the more waterfall-like approach.
+
+```bash
+devcyclesim run --output-format csv --stories-file examples/example_1/base_small_user_stories.json --duration 80 --plot --resource-plan "1-24:2,3,0,0" --resource-plan "25-45:2,3,3,0" --resource-plan "46-80:2,3,3,1"
+```
+
+The result of the simulation looks as follows:
+
+![Small user stories with conventional integration testing approach](images/SIT_small_user_stories.png)
+
+Die Leadtime liegt bei 73 Tagen. Erst an Tag 73 ist die gesamte Arbeit in Produktion verfügbar.
+
+## Example 4
+
+Analoges Vorgehen für die großen User-Stories aus Example 2 führt über:
+
+```bash
+devcyclesim run --output-format csv --stories-file examples/example_2/base_big_user_stories.json --duration 80 --plot --resource-plan "1-28:2,3,0,0" --resource-plan "29-52:2,3,3,0" --resource-plan "53-80:2,3,3,1"
+```
+
+zu:
+
+![Big user stories with conventional integration testing approach](images/SIT_big_user_stories.png)
+
 ## CLI Usage
 
 DevCycleSim provides a command-line interface (CLI) for running simulations. Here are the main options:
