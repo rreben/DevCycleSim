@@ -98,8 +98,13 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
 
     # Add burndown line
     remaining_tasks = [total_tasks - ft for ft in finished_tasks]
-    ax2.plot(df['Day'], remaining_tasks, color='red', linewidth=2,
-             label='Tasks remaining in backlog')
+    ax2.plot(
+        df['Day'],
+        remaining_tasks,
+        color='red',
+        linewidth=2,
+        label='Tasks in unfinished user stories (run-down)'
+    )
 
     # Add work in progress line (completed but not in finished stories)
     # Tasks_completed_cumulated is at index 10
