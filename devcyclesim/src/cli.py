@@ -4,6 +4,8 @@ from devcyclesim.src.process import Process, ResourcePlan
 from devcyclesim.src.user_story import UserStory, Phase
 from devcyclesim.src.visualization import plot_simulation_results
 import random
+import numpy as np
+from devcyclesim.src.user_story import Task
 
 
 @click.group()
@@ -142,22 +144,48 @@ def run(
 
                     for story_data in stories_data:
                         try:
-                            story = UserStory.from_phase_durations(
-                                story_id=story_data['id'],
-                                phase_durations={
-                                    Phase.SPEC: story_data.get(
-                                        'spec', random.randint(1, 3)),
-                                    Phase.DEV: story_data.get(
-                                        'dev', random.randint(2, 4)),
-                                    Phase.TEST: story_data.get(
-                                        'test', random.randint(1, 3)),
-                                    Phase.ROLLOUT: story_data.get('rollout', 1)
-                                },
-                                arrival_day=story_data.get('arrival_day', 1),
-                                priority=story_data.get('priority', 1)
-                            )
+                            if "tasks" in story_data:
+                                # Neue, flexible Variante:
+                                # beliebige Reihenfolge
+                                # und Wiederholungen
+                                task_list = []
+                                for task_entry in story_data["tasks"]:
+                                    phase = Phase(task_entry["phase"])
+                                    count = task_entry.get("count", 1)
+                                    task_list.extend(
+                                        [Task(phase=phase)
+                                         for _ in range(count)])
+                                    story = UserStory(
+                                        story_id=story_data["id"],
+                                        tasks=np.array(
+                                            task_list, dtype=object),
+                                        arrival_day=story_data.get(
+                                            "arrival_day", 1),
+                                        priority=story_data.get("priority", 1)
+                                    )
+                            else:
+                                # Alte, klassische Variante: eine Phase pro Typ
+                                story = UserStory.from_phase_durations(
+                                    story_id=story_data['id'],
+                                    phase_durations={
+                                        Phase.SPEC: story_data.get(
+                                            'spec', random.randint(1, 3)),
+                                        Phase.DEV: story_data.get(
+                                            'dev', random.randint(2, 4)),
+                                        Phase.TEST: story_data.get(
+                                            'test', random.randint(1, 3)),
+                                        Phase.ROLLOUT: story_data.get(
+                                            'rollout', 1)
+                                    },
+                                    arrival_day=story_data.get(
+                                        'arrival_day', 1),
+                                    priority=story_data.get('priority', 1)
+                                )
                         except KeyError as e:
-                            msg = f"Missing required field in story: {e}"
+                            msg = (
+                                f"Missing required field in story: "
+                                f"'{e.args[0]}'"
+                            )
                             raise ValueError(msg)
                         process.add(story)
             except FileNotFoundError:
