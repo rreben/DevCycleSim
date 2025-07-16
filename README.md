@@ -183,7 +183,7 @@ The result of the simulation looks as follows:
 
 ![Small user stories with conventional integration testing approach](images/SIT_small_user_stories.png)
 
-Die Leadtime liegt bei 66 Tagen. Erst an Tag 66 ist die gesamte Arbeit in Produktion verfügbar.
+The lead time is 66 days. Only on day 66 is all work available in production.
 
 ## Example 4
 
@@ -197,36 +197,43 @@ zu:
 
 ![Big user stories with conventional integration testing approach](images/SIT_big_user_stories.png)
 
-Die Leadtime liegt bei 73 Tagen.
+The lead time is 73 days.
 
 ## Example 5
 
-Wir können nun Fehlersituationen simulieren bzw. den Impact von Fehlern auf den Durchsatz im Prozess analysieren.
+We can now simulate error situations and analyze the impact of errors on process throughput.
 
-Wir gehen von einer Fehlerrate von 20% in der Entwicklung aus. Fehler in der Spezifikation unterstellen wir in diesem Szenario nicht. Also wird in jedem 5 Entwicklertask ein Fehler angenommen. Dies führt nach den Tests dazu, dass die User Story noch einmal einen Entwicklungstasks und einen Testtask enthält (für den Retest).
+We assume an error rate of 20% in development. In this scenario, we do not assume errors in the specification phase. This means that every 5th development task is assumed to have an error. As a result, after testing, the user story will require an additional development task (for fixing) and a test task (for retesting).
 
-Wir haben 20 User Stories mit jeweils 3 Dev-Tasks, also 60 Dev-Tasks. Daher gehen wir davon aus dass bei einer Fehlerrate von 20% 12 Tasks zu rework führen. Dies Modellieren in User Stories, die durch 5 teilbare Tasknummer enthalten.
+We have 20 user stories with 3 dev tasks each, resulting in 60 dev tasks. With a 20% error rate, we expect 12 tasks to require rework. We model this in user stories whose task numbers are divisible by 5.
 
-Es sind die user stories: 2, 4, 5, 7, 9, 10, 12, 14, 15, 17, 19, 20.
+These are the user stories: 2, 4, 5, 7, 9, 10, 12, 14, 15, 17, 19, 20.
 
-Hier kommen jeweils 2 Tasks (einmal Dev für Fixing und einmal Test für Retest) hinzu. Damit steigt die Gesamtarbeitsmenge von 180 Tasks auf 204 Tasks (+13%).
+Each of these receives 2 additional tasks (one dev for fixing and one test for retesting). This increases the total workload from 180 tasks to 204 tasks (+13%).
 
-Es ergibt sich folgendes Bild:
+The result is as follows:
 
-![Verzögerung durch Fehler in der Entwicklung](images/Sim_result_small_stories_errors.png)
+![Delay due to errors in development](images/Sim_result_small_stories_errors.png)
 
-Zugehöriger Aufruf:
+Corresponding command:
 
 ```bash
 devcyclesim run --output-format csv --stories-file examples/example_5/error_small_user_stories.json --duration 80 --plot --resource-plan "1-80:2,3,3,1"
 ```
-Die Leadtime erhöht sich durch die Fehler (Vergleiche Example 1) von 29 auf 35 Tage (+ 20%)
 
-Bei Vorgehen mit konventionellem Verbundtest (Test startet erst wenn die Entwicklung fertig ist) ergibt sich folgendes Bild:
+The lead time increases due to errors (compare Example 1) from 29 to 35 days (+20%).
 
-![Verzögerung durch Fehler in der Entwicklung bei konventionellem Verbundtest](images/Sim_result_small_stories_errors_SIT.png)
+With a conventional integration test approach (testing starts only after development is finished), the following result is obtained:
 
-Die Leadtime steigt von 66 auf 69 Tage an (+ 5%). Also rein von den Zahlen her, ist das konventionelle Vorgehen relativ resilient gegenüber Fehlern. Allerdings sieht man deutlich, dass über die gesamte Testphase die Entwickler immer wieder mit 2 Tagen Zwischenraum gefordert sind. Diesen Zeitraum bereits für das nächste Release zu nutzen dürfte sich in der Praxis als schwierig erweisen.
+![Delay due to errors in development with conventional integration testing](images/Sim_result_small_stories_errors_SIT.png)
+
+The lead time increases from 66 to 69 days (+5%). So, purely by the numbers, the conventional approach is relatively resilient to errors. However, it is clear that throughout the test phase, developers are repeatedly required for 2-day intervals. In practice, it is likely difficult to use this time efficiently for the next release.
+
+Here is the command for this simulation:
+
+```bash
+devcyclesim run --output-format csv --stories-file examples/example_5/error_small_user_stories.json --duration 80 --plot --resource-plan "1-24:2,3,0,0" --resource-plan "25-48:2,3,3,0" --resource-plan "49-80:2,3,3,1"
+```
 
 ## CLI Usage
 
