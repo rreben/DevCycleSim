@@ -293,6 +293,63 @@ There is also a ```--help```feature
 ]
 ```
 
+### New User Story JSON Format
+
+Starting with the current version, DevCycleSim supports a flexible user story format that explicitly lists the tasks of a user story as an array of phases and counts. This enables not only classic linear workflows, but also the modeling of errors and rework by allowing tasks to appear multiple times and in any order.
+
+#### Example of the new format
+
+```json
+[
+  {
+    "id": "STORY-01",
+    "tasks": [
+      {"phase": "spec", "count": 2},
+      {"phase": "dev", "count": 3},
+      {"phase": "test", "count": 2},
+      {"phase": "dev", "count": 1},
+      {"phase": "test", "count": 1},
+      {"phase": "rollout", "count": 1}
+    ],
+    "arrival_day": 1,
+    "priority": 1
+  }
+]
+```
+
+**Field explanations:**
+
+- `id`: Unique identifier for the user story.
+- `tasks`: List of task objects. Each object contains:
+  - `phase`: Name of the phase (`spec`, `dev`, `test`, `rollout`).
+  - `count`: How many times this phase is performed consecutively (e.g., 3 development days).
+- `arrival_day`: The day the story enters the process.
+- `priority`: Priority of the story.
+
+#### Flexible order for error and rework modeling
+
+Unlike the old format, where each phase appeared only once and in a fixed order, the new format allows arbitrary and repeated phases. For example, after a test phase, another development and test phase can follow to realistically model bug fixes and rework:
+
+```json
+"tasks": [
+  {"phase": "spec", "count": 2},
+  {"phase": "dev", "count": 3},
+  {"phase": "test", "count": 2},
+  {"phase": "dev", "count": 1},   // Rework after a test failure
+  {"phase": "test", "count": 1},  // Retest after rework
+  {"phase": "rollout", "count": 1}
+]
+```
+
+**Advantages:**
+
+- The order of tasks can be chosen freely.
+- Multiple passes through a phase are possible.
+- Errors and rework can be modeled explicitly and realistically.
+
+**Note:**
+The simulation processes the tasks exactly in the order specified. For example, a bug found during testing can be represented by adding an extra development and test task before the story proceeds to rollout.
+
 ### Output Formats
 
 1. Text (default):
