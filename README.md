@@ -183,7 +183,7 @@ The result of the simulation looks as follows:
 
 ![Small user stories with conventional integration testing approach](images/SIT_small_user_stories.png)
 
-Die Leadtime liegt bei 73 Tagen. Erst an Tag 73 ist die gesamte Arbeit in Produktion verfügbar.
+Die Leadtime liegt bei 66 Tagen. Erst an Tag 66 ist die gesamte Arbeit in Produktion verfügbar.
 
 ## Example 4
 
@@ -196,6 +196,37 @@ devcyclesim run --output-format csv --stories-file examples/example_2/base_big_u
 zu:
 
 ![Big user stories with conventional integration testing approach](images/SIT_big_user_stories.png)
+
+Die Leadtime liegt bei 73 Tagen.
+
+## Example 5
+
+Wir können nun Fehlersituationen simulieren bzw. den Impact von Fehlern auf den Durchsatz im Prozess analysieren.
+
+Wir gehen von einer Fehlerrate von 20% in der Entwicklung aus. Fehler in der Spezifikation unterstellen wir in diesem Szenario nicht. Also wird in jedem 5 Entwicklertask ein Fehler angenommen. Dies führt nach den Tests dazu, dass die User Story noch einmal einen Entwicklungstasks und einen Testtask enthält (für den Retest).
+
+Wir haben 20 User Stories mit jeweils 3 Dev-Tasks, also 60 Dev-Tasks. Daher gehen wir davon aus dass bei einer Fehlerrate von 20% 12 Tasks zu rework führen. Dies Modellieren in User Stories, die durch 5 teilbare Tasknummer enthalten.
+
+Es sind die user stories: 2, 4, 5, 7, 9, 10, 12, 14, 15, 17, 19, 20.
+
+Hier kommen jeweils 2 Tasks (einmal Dev für Fixing und einmal Test für Retest) hinzu. Damit steigt die Gesamtarbeitsmenge von 180 Tasks auf 204 Tasks (+13%).
+
+Es ergibt sich folgendes Bild:
+
+![Verzögerung durch Fehler in der Entwicklung](images/Sim_result_small_stories_errors.png)
+
+Zugehöriger Aufruf:
+
+```bash
+devcyclesim run --output-format csv --stories-file examples/example_5/error_small_user_stories.json --duration 80 --plot --resource-plan "1-80:2,3,3,1"
+```
+Die Leadtime erhöht sich durch die Fehler (Vergleiche Example 1) von 29 auf 35 Tage (+ 20%)
+
+Bei Vorgehen mit konventionellem Verbundtest (Test startet erst wenn die Entwicklung fertig ist) ergibt sich folgendes Bild:
+
+![Verzögerung durch Fehler in der Entwicklung bei konventionellem Verbundtest](images/Sim_result_small_stories_errors_SIT.png)
+
+Die Leadtime steigt von 66 auf 69 Tage an (+ 5%). Also rein von den Zahlen her, ist das konventionelle Vorgehen relativ resilient gegenüber Fehlern. Allerdings sieht man deutlich, dass über die gesamte Testphase die Entwickler immer wieder mit 2 Tagen Zwischenraum gefordert sind. Diesen Zeitraum bereits für das nächste Release zu nutzen dürfte sich in der Praxis als schwierig erweisen.
 
 ## CLI Usage
 
