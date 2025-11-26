@@ -15,9 +15,9 @@ def cli():
 
 
 @cli.command()
-@click.option("--duration", default=14, help="Simulation duration in days")
+@click.option("-d", "--duration", default=14, help="Simulation duration in days")
 @click.option(
-    "--resource-plan", multiple=True,
+    "-r", "--resource-plan", multiple=True,
     help='Format: "start-end:spec,dev,test,rollout"'
 )
 @click.option(
@@ -26,24 +26,24 @@ def cli():
     help="JSON file with resource plans",
 )
 @click.option(
-    "--stories-file", type=click.Path(exists=True),
+    "-s", "--stories-file", type=click.Path(exists=True),
     help="JSON file with user stories"
 )
 @click.option(
-    "--generate-stories", type=int, help="Number of stories to generate"
+    "-g", "--generate-stories", type=int, help="Number of stories to generate"
 )
 @click.option("--seed", type=int,
               help="Random seed for reproducible results")
 @click.option(
-    "--output-format",
+    "-t", "--output-format",
     type=click.Choice(["text", "json", "csv"]),
     default="text",
     help="Output format",
 )
-@click.option("--output-file", type=click.Path(),
+@click.option("-o", "--output-file", type=click.Path(),
               help="Output file (default: stdout)")
-@click.option("--verbose", is_flag=True, help="Detailed output")
-@click.option('--plot', is_flag=True, help='Plot simulation results')
+@click.option("-v", "--verbose", is_flag=True, help="Detailed output")
+@click.option('-p', '--plot', is_flag=True, help='Plot simulation results')
 def run(
     duration,
     resource_plan,

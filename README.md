@@ -2,6 +2,39 @@
 
 DevCycleSim is a Python-based simulation framework for modeling agile development processes. It simulates the flow of work items (user stories) through the phases of Specification, Development, Testing, and Rollout - with built-in error handling and rework dynamics.
 
+## Summary
+
+The program in this repository is DevCycleSim, a Python-based simulation framework designed to model and analyze agile software development processes.
+
+### Goal of the Program
+The primary goal of DevCycleSim is to simulate the flow of work items (user stories) through the software development lifecycle (SDLC). It treats the development process like a factory production line, allowing you to investigate how different factors—such as team size, resource allocation, and rework rates—affect the overall efficiency and lead time of software delivery.
+
+### Key Concepts & Features
+
+**Phased Workflow:** It models the SDLC in four distinct phases:
+
+* Specification
+* Development
+* Testing
+* Rollout
+
+**Resource Constraints:** Each phase has a limited capacity (number of people/resources). A user story can only be worked on if there is available capacity in that phase.
+
+**Sequential Tasks:** User stories are modeled as a sequence of tasks. A story must complete all tasks in its current phase before moving to the next.
+
+**Rework Dynamics:** Instead of just "errors," the simulation models rework. If a story fails a phase (e.g., testing), it can be sent back to a previous phase (e.g., development), simulating real-world bug fixing cycles.
+
+**Resource Planning:** You can define "Resource Plans" to change team capacity over time (e.g., "Days 1-20: 2 Developers, Days 21-40: 4 Developers").
+Detailed Statistics: The simulation tracks metrics like Lead Time, Work in Progress (WIP), and Efficiency, allowing you to identify bottlenecks in your process.
+How it Works
+You run the simulation via a CLI tool (devcyclesim), providing it with:
+
+**User Stories:** A JSON file defining the work items and their size (effort required in each phase).
+Resource Plan: A configuration of how many people are working in each phase.
+
+**Duration:** How many "simulation days" to run.
+The output (CSV, JSON, or Text) shows you exactly where stories are stuck, how long they take to complete, and how utilized your team is throughout the project.
+
 ## Idea
 
 The simulation represents the software development process as a factory where user stories (features/modules) pass through different production stations. Each user story has specific time requirements (in days) for the Specification, Development, Testing, and Rollout phases. For example, a story might require 1 day for Specification, 2 days for Development, 1 day for Testing, and 1 day for Rollout.
