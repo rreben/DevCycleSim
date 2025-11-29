@@ -67,6 +67,7 @@ class ProcessStatistic:
     task_completion_dates: (
         "dict[str, dict[str, list[tuple[Phase, int]]]]"
     ) = field(default_factory=dict)
+    feature_stats: "dict[str, dict[str, int]]" = field(default_factory=dict)
 
     @classmethod
     def from_process(cls, process, day: int) -> 'ProcessStatistic':
@@ -110,6 +111,38 @@ class ProcessStatistic:
             task_completion_dates[story.story_id] = (
                 story.get_task_completion_dates())
 
+        # Calculate feature statistics
+        feature_stats = {}
+        
+        # Helper to update feature stats
+        def update_feature_stat(feature_id, status_key):
+            if feature_id not in feature_stats:
+                feature_stats[feature_id] = {
+                    "backlog": 0,
+                    "wip": 0,
+                    "done": 0
+                }
+            feature_stats[feature_id][status_key] += 1
+
+        # Count backlog
+        for story in process.backlog:
+            update_feature_stat(story.feature_id, "backlog")
+
+        # Count WIP (in all steps)
+        for step in [
+            process.spec_step, process.dev_step,
+                process.test_step, process.rollout_step]:
+            for story in np.concatenate((
+                step.input_queue,
+                step.work_in_progress,
+                step.done
+            )):
+                update_feature_stat(story.feature_id, "wip")
+
+        # Count finished
+        for story in process.finished_work:
+            update_feature_stat(story.feature_id, "done")
+
         return cls(
             day=day,
             backlog_count=len(process.backlog),
@@ -120,7 +153,8 @@ class ProcessStatistic:
             test_stats=StepStatistic.from_process_step(process.test_step),
             rollout_stats=StepStatistic.from_process_step(
                 process.rollout_step),
-            task_completion_dates=task_completion_dates
+            task_completion_dates=task_completion_dates,
+            feature_stats=feature_stats
         )
 
     def print_statistics(self) -> None:
@@ -158,6 +192,15 @@ class ProcessStatistic:
                     * 100
                 )
                 print(f"  Utilization: {utilization:.1f}%")
+        
+        if self.feature_stats:
+            print("\nFeature Statistics:")
+            print("-" * 50)
+            for feature_id, stats in self.feature_stats.items():
+                print(f"\nFeature: {feature_id}")
+                print(f"  Backlog: {stats['backlog']}")
+                print(f"  WIP: {stats['wip']}")
+                print(f"  Done: {stats['done']}")
 
         if self.task_completion_dates:
             print("\nTask Completion Dates:")

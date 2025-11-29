@@ -161,7 +161,9 @@ def run(
                                             task_list, dtype=object),
                                         arrival_day=story_data.get(
                                             "arrival_day", 1),
-                                        priority=story_data.get("priority", 1)
+                                        priority=story_data.get("priority", 1),
+                                        feature_id=story_data.get(
+                                            "feature_id", "default_feature")
                                     )
                             else:
                                 # Alte, klassische Variante: eine Phase pro Typ
@@ -179,7 +181,9 @@ def run(
                                     },
                                     arrival_day=story_data.get(
                                         'arrival_day', 1),
-                                    priority=story_data.get('priority', 1)
+                                    priority=story_data.get('priority', 1),
+                                    feature_id=story_data.get(
+                                        'feature_id', 'default_feature')
                                 )
                         except KeyError as e:
                             msg = (

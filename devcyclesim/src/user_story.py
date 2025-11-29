@@ -50,6 +50,7 @@ class UserStory:
     tasks: np.ndarray
     arrival_day: int = 1
     priority: int = 1
+    feature_id: str = "default_feature"
     status: StoryStatus = field(default=StoryStatus.PENDING)
     current_task_index: int = field(default=0)
 
@@ -68,7 +69,8 @@ class UserStory:
         story_id: str,
         phase_durations: Dict[Phase, int],
         arrival_day: int = 1,
-        priority: int = 1
+        priority: int = 1,
+        feature_id: str = "default_feature"
     ) -> 'UserStory':
         """
         Creates a UserStory from phase durations.
@@ -103,7 +105,8 @@ class UserStory:
             story_id=story_id,
             tasks=tasks,
             arrival_day=arrival_day,
-            priority=priority
+            priority=priority,
+            feature_id=feature_id
         )
 
     @property
