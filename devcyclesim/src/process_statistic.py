@@ -390,3 +390,61 @@ class ProcessStatistic:
         parts.extend(summary_counts)
         parts.extend(completions)
         return ",".join(parts)
+
+    def get_daily_completion_stats(self) -> dict:
+        """
+        Returns structured statistics about task completion for this day.
+        
+        Returns:
+            dict: Dictionary containing:
+                - spec_completed: int
+                - dev_completed: int
+                - test_completed: int
+                - rollout_completed: int
+                - tasks_completed_cumulated: int
+                - tasks_finished_cumulated: int
+        """
+        story_ids = sorted(self.task_completion_dates.keys())
+        completions = []
+
+        # Process all stories to collect completions for this day
+        for story_id in story_ids:
+            dates = self.task_completion_dates[story_id]
+            task_completed_today = None
+            for phase, day in dates["completed"]:
+                if day == self.day:
+                    task_completed_today = phase
+                    break
+            
+            if task_completed_today:
+                completions.append(task_completed_today)
+
+        # Count completions per phase
+        spec_completed = completions.count(Phase.SPEC)
+        dev_completed = completions.count(Phase.DEV)
+        test_completed = completions.count(Phase.TEST)
+        rollout_completed = completions.count(Phase.ROLLOUT)
+
+        # Count all completed tasks (including partially finished stories)
+        tasks_completed = 0
+        for dates in self.task_completion_dates.values():
+            story_tasks = dates["completed"]
+            if story_tasks:
+                last_task_day = max(day for _, day in story_tasks)
+                if last_task_day <= self.day:
+                    tasks_completed += len(story_tasks)
+
+        # Count tasks of finished stories
+        tasks_finished = sum(
+            story.get_total_tasks()
+            for story in self.finished_work
+        )
+
+        return {
+            "spec_completed": spec_completed,
+            "dev_completed": dev_completed,
+            "test_completed": test_completed,
+            "rollout_completed": rollout_completed,
+            "tasks_completed_cumulated": tasks_completed,
+            "tasks_finished_cumulated": tasks_finished
+        }

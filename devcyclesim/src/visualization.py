@@ -49,26 +49,22 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     }
 
     # Get total number of tasks from last day's data
-    last_day = statistics[-1].get_task_completion_history_line().split(',')
-    # Tasks finished cumulated is at index 11
-    total_tasks = int(last_day[11])
+    last_day_stats = statistics[-1].get_daily_completion_stats()
+    total_tasks = last_day_stats['tasks_finished_cumulated']
 
     # Calculate finished tasks per day
     finished_tasks = get_finished_tasks_per_day(statistics)
 
     for stat in statistics:
-        # Get task completion data from history line
-        completion_data = stat.get_task_completion_history_line().split(',')
+        # Get task completion data using the new method
+        completion_data = stat.get_daily_completion_stats()
 
-        # Indices for completed tasks per phase:
-        # SPEC: 5, DEV: 6, TEST: 7, ROLLOUT: 8
-        # Tasks_completed_cumulated: 10
         data['Day'].append(stat.day)
-        data['SPEC'].append(int(completion_data[5]))
-        data['DEV'].append(int(completion_data[6]))
-        data['TEST'].append(int(completion_data[7]))
-        data['ROLLOUT'].append(int(completion_data[8]))
-        data['Cumulated'].append(int(completion_data[10]))
+        data['SPEC'].append(completion_data['spec_completed'])
+        data['DEV'].append(completion_data['dev_completed'])
+        data['TEST'].append(completion_data['test_completed'])
+        data['ROLLOUT'].append(completion_data['rollout_completed'])
+        data['Cumulated'].append(completion_data['tasks_completed_cumulated'])
 
     df = pd.DataFrame(data)
 
@@ -110,8 +106,8 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     # Tasks_completed_cumulated is at index 10
     work_in_progress = []
     for stat in statistics:
-        completion_data = stat.get_task_completion_history_line().split(',')
-        tasks_completed = int(completion_data[10])  # Tasks_completed_cumulated
+        completion_data = stat.get_daily_completion_stats()
+        tasks_completed = completion_data['tasks_completed_cumulated']
         tasks_in_finished = sum(
             story.get_total_tasks()
             for story in stat.finished_work
