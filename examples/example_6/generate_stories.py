@@ -6,10 +6,12 @@ for feature_id in range(1, 4):
     for story_id in range(1, 21):
         stories.append({
             "id": f"FEATURE-{feature_id}-STORY-{story_id:02d}",
-            "spec": 2,
-            "dev": 3,
-            "test": 3,
-            "rollout": 1,
+            "tasks": [
+                {"phase": "spec", "count": 2},
+                {"phase": "dev", "count": 3},
+                {"phase": "test", "count": 3},
+                {"phase": "rollout", "count": 1}
+            ],
             "arrival_day": 1,
             "priority": 1
         })
