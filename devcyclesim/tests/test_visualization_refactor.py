@@ -65,6 +65,8 @@ def test_plot_simulation_results_calls_new_method():
         "tasks_completed_cumulated": 1,
         "tasks_finished_cumulated": 0
     }
+    stat1.task_completion_dates = {}
+    stat1.story_feature_map = {}
     # Mock finished_work for get_finished_tasks_per_day
     stat1.finished_work = []
     
@@ -78,6 +80,8 @@ def test_plot_simulation_results_calls_new_method():
         "tasks_completed_cumulated": 2,
         "tasks_finished_cumulated": 0
     }
+    stat2.task_completion_dates = {}
+    stat2.story_feature_map = {}
     stat2.finished_work = []
     
     statistics = [stat1, stat2]
@@ -93,6 +97,9 @@ def test_plot_simulation_results_calls_new_method():
         mock_subplots.return_value = (mock_fig, mock_ax1)
         mock_ax1.twinx.return_value = mock_ax2
         
+        # Configure plot return for unpacking
+        mock_ax2.plot.return_value = [MagicMock()]
+
         # Configure legend handles to avoid unpacking errors
         mock_ax1.get_legend_handles_labels.return_value = (
             [MagicMock(), MagicMock(), MagicMock(), MagicMock()], 

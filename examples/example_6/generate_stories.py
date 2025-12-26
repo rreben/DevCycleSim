@@ -13,7 +13,8 @@ for feature_id in range(1, 4):
                 {"phase": "rollout", "count": 1}
             ],
             "arrival_day": 1,
-            "priority": 1
+            "priority": 1,
+            "feature_id": f"FEATURE-{feature_id}"
         })
 
 output_file = os.path.join(os.path.dirname(__file__), "three_features.json")

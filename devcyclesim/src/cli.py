@@ -44,6 +44,7 @@ def cli():
               help="Output file (default: stdout)")
 @click.option("-v", "--verbose", is_flag=True, help="Detailed output")
 @click.option('-p', '--plot', is_flag=True, help='Plot simulation results')
+@click.option('--highlight-feature', default=None, help='Feature ID to highlight in the plot')
 def run(
     duration,
     resource_plan,
@@ -55,6 +56,7 @@ def run(
     output_file,
     verbose,
     plot,
+    highlight_feature,
 ):
     """Runs a development process simulation."""
     try:
@@ -216,7 +218,7 @@ def run(
 
         # Plot erstellen wenn gewünscht
         if plot:
-            plot_simulation_results(process.get_statistics())
+            plot_simulation_results(process.get_statistics(), highlight_feature_id=highlight_feature)
 
         # Collect statistics
         stats = process.get_statistics()

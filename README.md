@@ -265,8 +265,27 @@ The lead time increases from 66 to 69 days (+5%). So, purely by the numbers, the
 Here is the command for this simulation:
 
 ```bash
+```bash
 devcyclesim run --output-format csv --stories-file examples/example_5/error_small_user_stories.json --duration 80 --plot --resource-plan "1-24:2,3,0,0" --resource-plan "25-48:2,3,3,0" --resource-plan "49-80:2,3,3,1"
 ```
+
+## Example 6 - Feature Flow Analysis
+
+In this scenario, we want to visualize how a specific feature (a group of 20 user stories) flows through the development process amidst the background noise of other features. We have 3 features in total, each with 20 user stories.
+
+We want to highlight "FEATURE-1" to see its progress specifically.
+
+Command:
+
+```bash
+devcyclesim run --stories-file examples/example_6/three_features.json --duration 50 --resource-plan "1-50:2,4,4,2" --plot --highlight-feature "FEATURE-2"
+```
+
+Result:
+
+![Feature Highlighting Example - FEATURE-1 is colored, others are gray](images/Feature_Flow_Highlighting.png)
+
+This visualization technique renders the target feature in vibrant colors while fading all other work into grayscale. This allows for immediate visual identification of where the specific feature is in the pipeline and how it is being processed relative to the overall system load.
 
 ## CLI Usage
 
@@ -287,6 +306,8 @@ devcyclesim run [OPTIONS]
 - `--output-format [text|json|csv]`: Output format (default: text)
 - `--output-file FILE`: Output file (default: stdout)
 - `--verbose`: Detailed output
+- `--plot`: Plot simulation results
+- `--highlight-feature TEXT`: Feature ID to highlight in the plot (e.g. "FEATURE-1")
 
 There is also a ```--help```feature
 

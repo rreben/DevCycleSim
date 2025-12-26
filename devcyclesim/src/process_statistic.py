@@ -68,6 +68,7 @@ class ProcessStatistic:
         "dict[str, dict[str, list[tuple[Phase, int]]]]"
     ) = field(default_factory=dict)
     feature_stats: "dict[str, dict[str, int]]" = field(default_factory=dict)
+    story_feature_map: "dict[str, str]" = field(default_factory=dict)
 
     @classmethod
     def from_process(cls, process, day: int) -> 'ProcessStatistic':
@@ -83,11 +84,13 @@ class ProcessStatistic:
         """
         # Collect task completion dates for all stories
         task_completion_dates = {}
+        story_feature_map = {}
 
         # Collect from backlog
         for story in process.backlog:
             task_completion_dates[story.story_id] = (
                 story.get_task_completion_dates())
+            story_feature_map[story.story_id] = story.feature_id
 
         # Collect from all process steps
         for step in [
@@ -97,19 +100,23 @@ class ProcessStatistic:
             for story in step.input_queue:
                 task_completion_dates[story.story_id] = (
                     story.get_task_completion_dates())
+                story_feature_map[story.story_id] = story.feature_id
             # From work in progress
             for story in step.work_in_progress:
                 task_completion_dates[story.story_id] = (
                     story.get_task_completion_dates())
+                story_feature_map[story.story_id] = story.feature_id
             # From done queue
             for story in step.done:
                 task_completion_dates[story.story_id] = (
                     story.get_task_completion_dates())
+                story_feature_map[story.story_id] = story.feature_id
 
         # Collect from finished work
         for story in process.finished_work:
             task_completion_dates[story.story_id] = (
                 story.get_task_completion_dates())
+            story_feature_map[story.story_id] = story.feature_id
 
         # Calculate feature statistics
         feature_stats = {}
@@ -154,7 +161,8 @@ class ProcessStatistic:
             rollout_stats=StepStatistic.from_process_step(
                 process.rollout_step),
             task_completion_dates=task_completion_dates,
-            feature_stats=feature_stats
+            feature_stats=feature_stats,
+            story_feature_map=story_feature_map
         )
 
     def print_statistics(self) -> None:

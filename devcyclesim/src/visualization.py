@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from typing import List
+from typing import List, Optional
 from .process_statistic import ProcessStatistic
+from .user_story import Phase
 
 
 def get_finished_tasks_per_day(
@@ -27,24 +28,31 @@ def get_finished_tasks_per_day(
     return finished_tasks
 
 
-def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
+def plot_simulation_results(
+    statistics: List[ProcessStatistic],
+    highlight_feature_id: Optional[str] = None
+) -> None:
     """Creates a stacked bar chart of daily tasks.
 
     Tasks are stacked per day, starting with SPEC (bottom),
     followed by DEV, TEST, and ROLLOUT (top). Additionally shows the
     cumulative number of completed tasks as a line.
 
+    If highlight_feature_id is provided, stories belonging to this feature
+    are shown in color, while others are shown in gray.
+
     Args:
         statistics: List of ProcessStatistic objects containing the
                   simulation results
+        highlight_feature_id: Optional ID of a feature to highlight
     """
     # Prepare data for DataFrame
     data = {
         'Day': [],
-        'SPEC': [],
-        'DEV': [],
-        'TEST': [],
-        'ROLLOUT': [],
+        'SPEC': [], 'SPEC_Other': [],
+        'DEV': [], 'DEV_Other': [],
+        'TEST': [], 'TEST_Other': [],
+        'ROLLOUT': [], 'ROLLOUT_Other': [],
         'Cumulated': []
     }
 
@@ -56,14 +64,49 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     finished_tasks = get_finished_tasks_per_day(statistics)
 
     for stat in statistics:
-        # Get task completion data using the new method
-        completion_data = stat.get_daily_completion_stats()
+        # Initialize counts
+        counts = {
+            'SPEC': 0, 'SPEC_Other': 0,
+            'DEV': 0, 'DEV_Other': 0,
+            'TEST': 0, 'TEST_Other': 0,
+            'ROLLOUT': 0, 'ROLLOUT_Other': 0
+        }
+        
+        # Calculate daily completions split by feature
+        story_ids = stat.task_completion_dates.keys()
+        for story_id in story_ids:
+            # Determine if this story belongs to the highlighted feature
+            # If no highlight_feature_id is set, everything counts as "Focus"
+            feature_id = stat.story_feature_map.get(story_id)
+            is_target = (highlight_feature_id is None or 
+                        feature_id == highlight_feature_id)
+            suffix = "" if is_target else "_Other"
 
+            # Check completions for this story on this day
+            dates = stat.task_completion_dates[story_id]
+            for phase, day in dates["completed"]:
+                if day == stat.day:
+                    if phase == Phase.SPEC:
+                        counts[f'SPEC{suffix}'] += 1
+                    elif phase == Phase.DEV:
+                        counts[f'DEV{suffix}'] += 1
+                    elif phase == Phase.TEST:
+                        counts[f'TEST{suffix}'] += 1
+                    elif phase == Phase.ROLLOUT:
+                        counts[f'ROLLOUT{suffix}'] += 1
+
+        # Get cumulative total (same as before)
+        completion_data = stat.get_daily_completion_stats()
+        
         data['Day'].append(stat.day)
-        data['SPEC'].append(completion_data['spec_completed'])
-        data['DEV'].append(completion_data['dev_completed'])
-        data['TEST'].append(completion_data['test_completed'])
-        data['ROLLOUT'].append(completion_data['rollout_completed'])
+        data['SPEC'].append(counts['SPEC'])
+        data['SPEC_Other'].append(counts['SPEC_Other'])
+        data['DEV'].append(counts['DEV'])
+        data['DEV_Other'].append(counts['DEV_Other'])
+        data['TEST'].append(counts['TEST'])
+        data['TEST_Other'].append(counts['TEST_Other'])
+        data['ROLLOUT'].append(counts['ROLLOUT'])
+        data['ROLLOUT_Other'].append(counts['ROLLOUT_Other'])
         data['Cumulated'].append(completion_data['tasks_completed_cumulated'])
 
     df = pd.DataFrame(data)
@@ -71,17 +114,57 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
     # Create bar chart
     fig, ax1 = plt.subplots(figsize=(15, 8))
 
-    # Create stacked bars (left y-axis)
-    ax1.bar(df['Day'], df['SPEC'], label='SPEC', color='lightblue',
-            alpha=0.6)
-    ax1.bar(df['Day'], df['DEV'], bottom=df['SPEC'],
-            label='DEV', color='khaki', alpha=0.6)
-    ax1.bar(df['Day'], df['TEST'],
-            bottom=df['SPEC'] + df['DEV'],
-            label='TEST', color='lightgreen', alpha=0.6)
-    ax1.bar(df['Day'], df['ROLLOUT'],
-            bottom=df['SPEC'] + df['DEV'] + df['TEST'],
-            label='ROLLOUT', color='lightcoral', alpha=0.6)
+    # Define colors
+    colors = {
+        'SPEC': 'lightblue', 'SPEC_Other': '#E0E0E0',
+        'DEV': 'khaki', 'DEV_Other': '#D3D3D3',
+        'TEST': 'lightgreen', 'TEST_Other': '#C0C0C0',
+        'ROLLOUT': 'lightcoral', 'ROLLOUT_Other': '#A9A9A9'
+    }
+
+    # Stack order: SPEC_Other, SPEC, DEV_Other, DEV, etc.
+    stack_order = [
+        ('SPEC_Other', 'SPEC (Other)'),
+        ('SPEC', 'SPEC'),
+        ('DEV_Other', 'DEV (Other)'),
+        ('DEV', 'DEV'),
+        ('TEST_Other', 'TEST (Other)'),
+        ('TEST', 'TEST'),
+        ('ROLLOUT_Other', 'ROLLOUT (Other)'),
+        ('ROLLOUT', 'ROLLOUT')
+    ]
+
+    bottom = pd.Series([0] * len(df))
+    
+    # Store handles for legend
+    legend_handles = {}
+
+    for col, label in stack_order:
+        # Only plot if there is data (optimization) or if it's a primary column
+        # Ideally we plot everything to keep the stack consistent
+        
+        # If not highlighting, skip "Other" columns to avoid clutter/confusing legend
+        # (Though values should be 0 anyway)
+        if highlight_feature_id is None and 'Other' in col:
+            continue
+
+        color = colors[col]
+        
+        # Plot bar
+        bars = ax1.bar(
+            df['Day'], df[col],
+            bottom=bottom,
+            label=label if 'Other' not in col else None, # Only label main phases
+            color=color,
+            alpha=0.6 if 'Other' not in col else 0.4
+        )
+        
+        # Update bottom
+        bottom += df[col]
+        
+        # Store handle if it's a main phase
+        if 'Other' not in col:
+            legend_handles[col] = bars
 
     ax1.set_xlabel('Day')
     ax1.set_ylabel('Active Resources (Tasks Completed)')
@@ -89,12 +172,13 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
 
     # Second y-axis for cumulated tasks
     ax2 = ax1.twinx()
-    ax2.plot(df['Day'], df['Cumulated'], color='tab:blue', linewidth=2,
-             label='Tasks completed (cumulative)')
+    start_label = 'Tasks completed (cumulative)'
+    line1, = ax2.plot(df['Day'], df['Cumulated'], color='tab:blue', linewidth=2,
+             label=start_label)
 
     # Add burndown line
     remaining_tasks = [total_tasks - ft for ft in finished_tasks]
-    ax2.plot(
+    line2, = ax2.plot(
         df['Day'],
         remaining_tasks,
         color='red',
@@ -102,8 +186,7 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
         label='Tasks in unfinished user stories (run-down)'
     )
 
-    # Add work in progress line (completed but not in finished stories)
-    # Tasks_completed_cumulated is at index 10
+    # Add work in progress line
     work_in_progress = []
     for stat in statistics:
         completion_data = stat.get_daily_completion_stats()
@@ -114,47 +197,47 @@ def plot_simulation_results(statistics: List[ProcessStatistic]) -> None:
         )
         work_in_progress.append(tasks_completed - tasks_in_finished)
 
-    ax2.plot(df['Day'], work_in_progress, color='orange', linewidth=2,
+    line3, = ax2.plot(df['Day'], work_in_progress, color='orange', linewidth=2,
              label='Tasks in progress (completed)')
 
     ax2.set_ylabel('Number of Tasks')
 
-    # Title and legend
-    plt.title('Simulation Results')
+    # Title
+    title = 'Simulation Results'
+    if highlight_feature_id:
+        title += f' (Highlighting {highlight_feature_id})'
+    plt.title(title)
 
-    # 1) Hole Bar- und Line‑Handles nur einmal
-    bar_handles, bar_labels = ax1.get_legend_handles_labels()
-    line_handles, line_labels = ax2.get_legend_handles_labels()
-
-    # 2) Baue pairs: je Bar + (entweder Line im ersten Paar oder leer)
-    #    Wir nehmen an, es gibt genau 4 Bars und 3 Lines
-    h_SPEC, h_DEV, h_TEST, h_ROLLOUT = bar_handles
-    l_SPEC, l_DEV, l_TEST, l_ROLLOUT = bar_labels
-    h_LINE1, h_LINE2, h_LINE3 = line_handles
-    l_LINE1, l_LINE2, l_LINE3 = line_labels
-
-    # 3) Interleaved handles/labels so dass die erste Zeile die LINEs enthält
+    # Custom Legend
+    # We want:
+    # Row 1: Lines (Cumulative, Rundown, WIP)
+    # Row 2: Bars (SPEC, DEV, TEST, ROLLOUT) - Colors only / Primary
+    
+    # If highlighted, we could add a note about gray bars, but simplicity is better.
+    
     handles = [
-        h_SPEC, None, h_DEV, None, h_TEST, None, h_ROLLOUT, None,
-        h_LINE1, h_LINE2, h_LINE3]
+        legend_handles['SPEC'], legend_handles['DEV'], 
+        legend_handles['TEST'], legend_handles['ROLLOUT'],
+        line1, line2, line3
+    ]
     labels = [
-        l_SPEC, "", l_DEV, "", l_TEST, "", l_ROLLOUT, "",
-        l_LINE1, l_LINE2, l_LINE3]
+        'SPEC', 'DEV', 'TEST', 'ROLLOUT',
+        'Tasks completed', 'Unfinished tasks', 'Tasks in progress'
+    ]
 
-    # 4) Zeichne Legende in 2 Spalten unter dem Plot
+    # Organize in columns
+    # Reusing the previous nice layout 4 bars interleaved with spacers?
+    # Previous layout was complex. Let's simplify.
+    
     ax1.legend(
         handles,
         labels,
-        ncol=2,
+        ncol=4, # 4 columns
         loc="lower center",
-        bbox_to_anchor=(0.80, -0.30),
+        bbox_to_anchor=(0.5, -0.25), # Center below
         frameon=True,
-        facecolor="white",
-        framealpha=0.9,
-        columnspacing=2.0,
-        handletextpad=0.5,
+        facecolor="white"
     )
 
-    # 5) Unten Platz schaffen
-    plt.subplots_adjust(bottom=0.25)
+    plt.subplots_adjust(bottom=0.20)
     plt.show()
