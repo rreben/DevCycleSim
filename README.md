@@ -278,7 +278,7 @@ We want to highlight "FEATURE-1" to see its progress specifically.
 Command:
 
 ```bash
-devcyclesim run --stories-file examples/example_6/three_features.json --duration 50 --resource-plan "1-50:2,4,4,2" --plot --highlight-feature "FEATURE-2"
+devcyclesim run --stories-file examples/example_6/three_features.json --duration 100 --resource-plan "1-50:2,4,4,2" --plot --highlight-feature "FEATURE-2"
 ```
 
 Result:
@@ -286,6 +286,24 @@ Result:
 ![Feature Highlighting Example - FEATURE-1 is colored, others are gray](images/Feature_Flow_Highlighting.png)
 
 This visualization technique renders the target feature in vibrant colors while fading all other work into grayscale. This allows for immediate visual identification of where the specific feature is in the pipeline and how it is being processed relative to the overall system load.
+
+## Example 7 - Fewer but Bigger Stories
+
+This example is analogous to Example 6, but tests the impact of batch size.
+- **Same total work**: 3 features, same total number of tasks.
+- **Different distribution**: Instead of 20 small stories per feature, we have **10 large stories** per feature. Each story has double the task count of Example 6.
+
+Command:
+
+```bash
+devcyclesim run --stories-file examples/example_7/three_features.json --duration 100 --resource-plan "1-50:2,4,4,2" --plot --highlight-feature "FEATURE-1"
+```
+
+Result:
+
+![Feature Highlighting Example 7 - Bigger Stories](images/Feature_Flow_Highlighting_Big.png)
+
+This allows comparing the flow efficiency of smaller vs larger work items (Batch Size).
 
 ## CLI Usage
 
