@@ -78,6 +78,12 @@ def test_plot_simulation_results_splits_data():
     }
     stat.finished_work = []
     
+    # Mock capacity stats for heatmap utilization calc
+    stat.spec_stats = MagicMock(capacity=1)
+    stat.dev_stats = MagicMock(capacity=1)
+    stat.test_stats = MagicMock(capacity=1)
+    stat.rollout_stats = MagicMock(capacity=1)
+    
     statistics = [stat]
     
     # Patch plt
@@ -87,31 +93,30 @@ def test_plot_simulation_results_splits_data():
         mock_fig = MagicMock()
         mock_ax1 = MagicMock()
         mock_ax2 = MagicMock()
-        mock_subplots.return_value = (mock_fig, mock_ax1)
-        mock_ax1.twinx.return_value = mock_ax2
+        mock_ax3 = MagicMock()
+        # plt.subplots returns (fig, axes_array)
+        # axes_array unpacks to (ax1, ax2, ax3)
+        mock_subplots.return_value = (mock_fig, [mock_ax1, mock_ax2, mock_ax3])
+        mock_ax3.twinx.return_value = MagicMock() # ax4
         
         # Configure plot returns to support unpacking "line, = ax.plot()"
-        mock_ax2.plot.return_value = [MagicMock()]
+        # ax4 (twinx of ax3) is used for lines
+        mock_ax3.twinx.return_value.plot.return_value = [MagicMock()]
 
         # We need to ensure get_legend_handles_labels returns enough dummy items
-        # The code expects 4 bars handles? No, now it iterates stack_order
-        # and collects handles.
-        # But at the end it calls get_legend_handles_labels() on ax1 and ax2
         mock_ax1.get_legend_handles_labels.return_value = ([], []) 
-        mock_ax2.get_legend_handles_labels.return_value = ([], [])
+        mock_ax3.get_legend_handles_labels.return_value = ([], [])
 
         # Call with highlighting FeatureA
         # S1 is FeatureA -> SPEC (Focus)
         # S2 is FeatureB -> SPEC_Other
         plot_simulation_results(statistics, highlight_feature_id="FeatureA")
         
-        # Check ax1.bar calls
+        # Check ax3.bar calls (WIP chart is now on ax3)
         # We expect separate calls for 'SPEC' and 'SPEC_Other'
-        # Data passed to bar is the sequence of values.
-        # We need to capture the calls and inspect the data.
         
         # Collect all calls to bar
-        bar_calls = mock_ax1.bar.call_args_list
+        bar_calls = mock_ax3.bar.call_args_list
         
         # We expect calls for:
         # SPEC_Other (count=1 for day 1)
@@ -133,8 +138,8 @@ def test_plot_simulation_results_splits_data():
                 # This should be the Focus bar
                 if heights[0] == 1:
                     found_spec_focus = True
-            elif label is None and kwargs.get('color') == '#E0E0E0':
-                # This is likely SPEC_Other
+            elif label is None and kwargs.get('color') == 'lightblue':
+                # This is likely SPEC_Other (color is now same as focus 'lightblue')
                  if heights[0] == 1:
                     found_spec_other = True
 

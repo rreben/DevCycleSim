@@ -69,6 +69,10 @@ def test_plot_simulation_results_calls_new_method():
     stat1.story_feature_map = {}
     # Mock finished_work for get_finished_tasks_per_day
     stat1.finished_work = []
+    stat1.spec_stats = MagicMock(capacity=1)
+    stat1.dev_stats = MagicMock(capacity=1)
+    stat1.test_stats = MagicMock(capacity=1)
+    stat1.rollout_stats = MagicMock(capacity=1)
     
     stat2 = MagicMock(spec=ProcessStatistic)
     stat2.day = 2
@@ -83,6 +87,10 @@ def test_plot_simulation_results_calls_new_method():
     stat2.task_completion_dates = {}
     stat2.story_feature_map = {}
     stat2.finished_work = []
+    stat2.spec_stats = MagicMock(capacity=1)
+    stat2.dev_stats = MagicMock(capacity=1)
+    stat2.test_stats = MagicMock(capacity=1)
+    stat2.rollout_stats = MagicMock(capacity=1)
     
     statistics = [stat1, stat2]
     
@@ -94,18 +102,21 @@ def test_plot_simulation_results_calls_new_method():
         mock_fig = MagicMock()
         mock_ax1 = MagicMock()
         mock_ax2 = MagicMock()
-        mock_subplots.return_value = (mock_fig, mock_ax1)
-        mock_ax1.twinx.return_value = mock_ax2
+        mock_ax3 = MagicMock()
+        # plt.subplots returns (fig, axes_array)
+        mock_subplots.return_value = (mock_fig, [mock_ax1, mock_ax2, mock_ax3])
+        mock_ax3.twinx.return_value = MagicMock() # ax4
         
         # Configure plot return for unpacking
-        mock_ax2.plot.return_value = [MagicMock()]
+        # ax4.plot() returns line handles
+        mock_ax3.twinx.return_value.plot.return_value = [MagicMock()]
 
         # Configure legend handles to avoid unpacking errors
         mock_ax1.get_legend_handles_labels.return_value = (
             [MagicMock(), MagicMock(), MagicMock(), MagicMock()], 
             ["SPEC", "DEV", "TEST", "ROLLOUT"]
         )
-        mock_ax2.get_legend_handles_labels.return_value = (
+        mock_ax3.get_legend_handles_labels.return_value = (
             [MagicMock(), MagicMock(), MagicMock()],
             ["Line1", "Line2", "Line3"]
         )
