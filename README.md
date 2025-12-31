@@ -546,6 +546,37 @@ Alternatively with `pip`:
 pip install -r requirements.txt
 ```
 
+### Graphical Output & Scrollbar Support (macOS)
+
+To enable the interactive scrollable charts (Tkinter backend), you need to ensure `python-tk` is correctly linked to your Python installation.
+
+**1. Install Xcode Command Line Tools**
+Required for compiling Tkinter support.
+```bash
+xcode-select --install
+```
+
+**2. Install python-tk via Homebrew**
+Install the Tkinter binding matching your Python version (e.g., 3.11).
+```bash
+brew install python-tk@3.11
+```
+
+**3. Troubleshooting Missing Scrollbars**
+If you see warnings about Tkinter/TkAgg not being available:
+1. Ensure you are running the simulation via the virtual environment python:
+   ```bash
+   ./.venv/bin/python -m devcyclesim.src.cli run ...
+   ```
+   Or use the provided helper script:
+   ```bash
+   ./run_sim.sh
+   ```
+2. If issues persist, reinstall matplotlib to force it to link against the newly installed Tkinter:
+   ```bash
+   .venv/bin/pip install --force-reinstall matplotlib
+   ```
+
 ### Installing the package
 
 Installation in development mode:
