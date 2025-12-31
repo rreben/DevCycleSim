@@ -1,3 +1,9 @@
+import matplotlib
+try:
+    matplotlib.use('TkAgg')
+except ImportError:
+    pass
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from typing import List, Optional
@@ -429,11 +435,18 @@ def plot_simulation_results(
 
         toolbar = NavigationToolbar2Tk(canvas_agg, root)
         toolbar.update()
-        # canvas_agg.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        
+        def on_closing():
+            plt.close(fig) # Close matplotlib figure to free resources
+            root.quit()    # Stop mainloop
+            root.destroy() # Destroy window
+
+        root.protocol("WM_DELETE_WINDOW", on_closing)
 
         root.mainloop()
 
-    except ImportError:
-        print("Warning: Tkinter/TkAgg not available. Falling back to standard plt.show() (non-scrollable).")
+    except ImportError as e:
+        print(f"Warning: Tkinter/TkAgg not available. Error: {e}")
+        print("Falling back to standard plt.show() (non-scrollable).")
         plt.tight_layout()
         plt.show()

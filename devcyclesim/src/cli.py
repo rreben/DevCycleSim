@@ -1,5 +1,9 @@
 import click
 import json
+import sys
+import argparse
+from typing import List
+
 from devcyclesim.src.process import Process, ResourcePlan
 from devcyclesim.src.user_story import UserStory, Phase
 from devcyclesim.src.visualization import plot_simulation_results
