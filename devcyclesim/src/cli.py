@@ -303,7 +303,7 @@ def run(
                 output += "\n"
 
             # Then add completion dates summary at the end
-            if final_completion_dates:
+            if final_completion_dates and verbose:
                 output += "Task Completion Summary:\n"
                 output += "-" * 50 + "\n"
                 for story_id, dates in final_completion_dates.items():
