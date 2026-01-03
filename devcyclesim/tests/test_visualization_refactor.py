@@ -94,9 +94,12 @@ def test_plot_simulation_results_calls_new_method():
     
     statistics = [stat1, stat2]
     
-    # Patch matplotlib.pyplot to avoid showing the plot
+    # Patch matplotlib.pyplot and Tkinter components
     with patch('matplotlib.pyplot.show'), \
-         patch('matplotlib.pyplot.subplots') as mock_subplots:
+         patch('matplotlib.pyplot.subplots') as mock_subplots, \
+         patch('matplotlib.backends.backend_tkagg.FigureCanvasTkAgg'), \
+         patch('matplotlib.backends.backend_tkagg.NavigationToolbar2Tk'), \
+         patch('tkinter.Tk'):
         
         # Configure mock figure and axes
         mock_fig = MagicMock()

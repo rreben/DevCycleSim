@@ -86,9 +86,12 @@ def test_plot_simulation_results_splits_data():
     
     statistics = [stat]
     
-    # Patch plt
+    # Patch plt and Tkinter components
     with patch('matplotlib.pyplot.show'), \
-         patch('matplotlib.pyplot.subplots') as mock_subplots:
+         patch('matplotlib.pyplot.subplots') as mock_subplots, \
+         patch('matplotlib.backends.backend_tkagg.FigureCanvasTkAgg'), \
+         patch('matplotlib.backends.backend_tkagg.NavigationToolbar2Tk'), \
+         patch('tkinter.Tk'):
          
         mock_fig = MagicMock()
         mock_ax1 = MagicMock()

@@ -3,22 +3,15 @@ import json
 import sys
 import argparse
 from typing import List
-
-from devcyclesim.src.process import Process, ResourcePlan
-from devcyclesim.src.user_story import UserStory, Phase
-from devcyclesim.src.visualization import plot_simulation_results
 import random
 import numpy as np
-from devcyclesim.src.user_story import Task
+
+from devcyclesim.src.process import Process, ResourcePlan
+from devcyclesim.src.user_story import UserStory, Phase, Task
+from devcyclesim.src.visualization import plot_simulation_results
 
 
-@click.group()
-def cli():
-    """DevCycleSim - A simulation for development processes."""
-    pass
-
-
-@cli.command()
+@click.command()
 @click.option("-d", "--duration", default=14, help="Simulation duration in days")
 @click.option(
     "-r", "--resource-plan", multiple=True,
@@ -47,7 +40,7 @@ def cli():
 @click.option("-o", "--output-file", type=click.Path(),
               help="Output file (default: stdout)")
 @click.option("-v", "--verbose", is_flag=True, help="Detailed output")
-@click.option('-p', '--plot', is_flag=True, help='Plot simulation results')
+@click.option('-p', '--plot/--no-plot', default=True, help='Plot simulation results')
 @click.option('--highlight-feature', default=None, help='Feature ID to highlight in the plot')
 def run(
     duration,
@@ -62,7 +55,10 @@ def run(
     plot,
     highlight_feature,
 ):
-    """Runs a development process simulation."""
+    """DevCycleSim - A simulation for development processes.
+
+    Runs a development process simulation.
+    """
     try:
         # Set seed if specified
         if seed is not None:
@@ -150,10 +146,8 @@ def run(
 
                     for story_data in stories_data:
                         try:
+                            # Standardized format: List of tasks
                             if "tasks" in story_data:
-                                # Neue, flexible Variante:
-                                # beliebige Reihenfolge
-                                # und Wiederholungen
                                 task_list = []
                                 for task_entry in story_data["tasks"]:
                                     phase = Phase(task_entry["phase"])
@@ -161,43 +155,36 @@ def run(
                                     task_list.extend(
                                         [Task(phase=phase)
                                          for _ in range(count)])
-                                    story = UserStory(
-                                        story_id=story_data["id"],
-                                        tasks=np.array(
-                                            task_list, dtype=object),
-                                        arrival_day=story_data.get(
-                                            "arrival_day", 1),
-                                        priority=story_data.get("priority", 1),
-                                        feature_id=story_data.get(
-                                            "feature_id", "default_feature")
-                                    )
-                            else:
-                                # Alte, klassische Variante: eine Phase pro Typ
-                                story = UserStory.from_phase_durations(
-                                    story_id=story_data['id'],
-                                    phase_durations={
-                                        Phase.SPEC: story_data.get(
-                                            'spec', random.randint(1, 3)),
-                                        Phase.DEV: story_data.get(
-                                            'dev', random.randint(2, 4)),
-                                        Phase.TEST: story_data.get(
-                                            'test', random.randint(1, 3)),
-                                        Phase.ROLLOUT: story_data.get(
-                                            'rollout', 1)
-                                    },
+                                story = UserStory(
+                                    story_id=story_data["id"],
+                                    tasks=np.array(
+                                        task_list, dtype=object),
                                     arrival_day=story_data.get(
-                                        'arrival_day', 1),
-                                    priority=story_data.get('priority', 1),
+                                        "arrival_day", 1),
+                                    priority=story_data.get("priority", 1),
                                     feature_id=story_data.get(
-                                        'feature_id', 'default_feature')
+                                        "feature_id", "default_feature")
                                 )
+                                process.add(story)
+                            else:
+                                # Legacy format check - throw helpful error
+                                if any(k in story_data for k in ['spec', 'dev', 'test', 'rollout']):
+                                    click.echo(
+                                        f"Warning: Story {story_data.get('id')} "
+                                        "uses legacy format. Please migrate to 'tasks' format."
+                                        "Skipping."
+                                    )
+                                else:
+                                    click.echo(f"Warning: Story {story_data.get('id')} has no valid definition. Skipping.")
                         except KeyError as e:
                             msg = (
                                 f"Missing required field in story: "
                                 f"'{e.args[0]}'"
                             )
                             raise ValueError(msg)
-                        process.add(story)
+                        except ValueError as e:
+                             # Phase invalid etc
+                             raise ValueError(f"Error in story data: {e}")
             except FileNotFoundError:
                 msg = f"Stories file not found: {stories_file}"
                 raise ValueError(msg)
@@ -220,12 +207,12 @@ def run(
         # Run simulation
         process.start()
 
+        # Collect statistics first
+        stats = process.get_statistics()
+        
         # Plot erstellen wenn gewünscht
         if plot:
-            plot_simulation_results(process.get_statistics(), highlight_feature_id=highlight_feature)
-
-        # Collect statistics
-        stats = process.get_statistics()
+            plot_simulation_results(stats, highlight_feature_id=highlight_feature)
 
         # Prepare statistics for output
         stats_dict = {}
@@ -348,4 +335,4 @@ def run(
 
 
 if __name__ == "__main__":
-    cli()
+    run()
