@@ -199,6 +199,36 @@ We can plot the overal work like so:
 
 The lead time is 36 days. The team is only "fully loaded" on two days. The efficiency is 56 % and there are up to >90 tasks "in the system" for the team (WIP).
 
+The lead time is 36 days. The team is only "fully loaded" on two days. The efficiency is 56 % and there are up to >90 tasks "in the system" for the team (WIP).
+
+## Batching vs. Continuous Flow
+
+By default, DevCycleSim simulates a continuous flow (Agile/Lean): as soon as a user story is finished in one phase (e.g. Development), it is available for the next phase (e.g. Testing).
+
+However, you can also simulate "Batching" or "Waterfall-like" behavior where a phase only releases work when a whole feature is completed.
+
+### Example: Waterfall (Gatekeeping)
+
+If you want to simulate that **Testing** only starts after **all** stories of a feature have finished **Development** (Phased approach):
+
+```bash
+devcyclesim run ... --batch-phases dev
+```
+
+If you want to simulate that **Rollout** only starts after the whole feature has been **Tested** (UAT approval gate):
+
+```bash
+devcyclesim run ... --batch-phases test
+```
+
+You can combine them. To simulate a strict Waterfall (Spec -> Dev -> Test -> Rollout, with gates between each):
+
+```bash
+devcyclesim run ... --batch-phases spec,dev,test
+```
+
+This will likely increase Lead Time significantly compared to continuous flow, as work piles up (Inventory/WIP) before moving to the next stage in big chunks.
+
 ## Example 3
 
 A perfectly balanced plan, however only specification and development overlap here. The tests are started - in the sense of classical system integration tests - only when development is finished. The rollout also only occurs after the tests are completed.
@@ -326,6 +356,7 @@ devcyclesim run [OPTIONS]
 - `--verbose`: Detailed output
 - `--plot`: Plot simulation results
 - `--highlight-feature TEXT`: Feature ID to highlight in the plot (e.g. "FEATURE-1")
+- `--batch-phases TEXT`: Comma-separated list of phases (spec,dev,test) to use Batch Release policy
 
 There is also a ```--help```feature
 

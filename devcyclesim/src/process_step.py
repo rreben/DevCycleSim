@@ -1,7 +1,13 @@
 from dataclasses import dataclass, field
 import numpy as np
 from devcyclesim.src.user_story import Phase, UserStory, StoryStatus
-from typing import Optional
+from typing import Optional, Dict, Set
+from enum import Enum
+
+class ReleasePolicy(Enum):
+    CONTINUOUS = "continuous"
+    BATCH_FEATURE = "batch_feature"
+
 
 
 @dataclass
@@ -16,6 +22,10 @@ class ProcessStep:
     name: str
     phase: Phase
     _capacity: int
+    release_policy: "ReleasePolicy" = field(default="continuous") # type: ignore
+    feature_story_counts: Dict[str, int] = field(default_factory=dict)
+    released_features: set[str] = field(default_factory=set)
+    
     input_queue: np.ndarray = field(
         default_factory=lambda: np.array([], dtype=object)
     )
@@ -30,6 +40,15 @@ class ProcessStep:
         """Validates the input parameters"""
         if self._capacity < 0:
             raise ValueError("Capacity must not be negative")
+        
+        # Ensure release_policy is an instance of ReleasePolicy
+        if isinstance(self.release_policy, str):
+            if self.release_policy == "continuous":
+                self.release_policy = ReleasePolicy.CONTINUOUS
+            elif self.release_policy == "batch_feature":
+                self.release_policy = ReleasePolicy.BATCH_FEATURE
+            else:
+                 self.release_policy = ReleasePolicy.CONTINUOUS
 
     @property
     def capacity(self) -> int:
@@ -74,6 +93,9 @@ class ProcessStep:
     def pluck(self) -> Optional[UserStory]:
         """
         Removes and returns the first user story from the done queue.
+        
+        If release_policy is BATCH_FEATURE, it only returns a story if all
+        stories of the corresponding feature are in the done queue (or already released).
 
         Returns:
             Optional[UserStory]: The first story from the done queue or None
@@ -82,14 +104,73 @@ class ProcessStep:
         if len(self.done) == 0:
             return None
 
-        # Since we know that only UserStories are stored,
-        # the type cast is safe
-        story: UserStory = self.done[0]  # type: ignore
-
-        # Remove the first element
-        self.done = self.done[1:]
-
-        return story
+        if self.release_policy == ReleasePolicy.CONTINUOUS:
+            # Standard behavior: take the first one
+            story: UserStory = self.done[0]  # type: ignore
+            self.done = self.done[1:]
+            return story
+        
+        elif self.release_policy == ReleasePolicy.BATCH_FEATURE:
+            # Batch behavior: find a story that belongs to a completed feature
+            
+            # 1. Identify stories in Done queue by feature
+            done_counts_by_feature = {}
+            for s in self.done:
+                fid = s.feature_id
+                done_counts_by_feature[fid] = done_counts_by_feature.get(fid, 0) + 1
+            
+            candidate_index = -1
+            
+            for i, story in enumerate(self.done):
+                fid = story.feature_id
+                
+                # Check if feature is already being released
+                if fid in self.released_features:
+                    candidate_index = i
+                    break
+                
+                # Check if feature is complete in Done queue
+                # We need the total count of stories for this feature
+                total_count = self.feature_story_counts.get(fid, 0)
+                
+                # If we don't know the total count, we assume it's 1 (safe fallback) or treat as continuous?
+                # Let's assume strict batching: if unknown, we might be stuck. 
+                # But Process should populate this. 
+                
+                current_done_count = done_counts_by_feature.get(fid, 0)
+                
+                if total_count > 0 and current_done_count >= total_count:
+                    # Feature is complete! Start releasing.
+                    self.released_features.add(fid)
+                    candidate_index = i
+                    break
+            
+            if candidate_index != -1:
+                story: UserStory = self.done[candidate_index] # type: ignore
+                # Remove specific element
+                self.done = np.delete(self.done, candidate_index)
+                
+                # Check if this was the last one for this feature in the done queue
+                # Re-check counts to see if we should remove from released_features
+                # Actually, if we just removed one, we are still releasing.
+                # We stop "released_features" status only when no more stories of that feature are in done?
+                # Or we keep it forever? simpler: keep it forever in this set is fine, 
+                # or remove it when count becomes 0.
+                
+                # Let's check remaining count
+                remaining_count = 0
+                for s in self.done:
+                    if s.feature_id == story.feature_id:
+                        remaining_count += 1
+                
+                if remaining_count == 0:
+                    self.released_features.remove(story.feature_id)
+                    
+                return story
+            
+            return None
+            
+        return None
 
     def adjust_workload_to_capacity(self) -> None:
         """

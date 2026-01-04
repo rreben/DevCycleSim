@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict
 
 import numpy as np
-from devcyclesim.src.process_step import ProcessStep
+from devcyclesim.src.process_step import ProcessStep, ReleasePolicy
 from devcyclesim.src.user_story import Phase, UserStory, StoryStatus
 from devcyclesim.src.process_statistic import ProcessStatistic
 
@@ -330,11 +330,47 @@ class Process:
         self.day_processing(day)
         self.end_of_day_processing(day)
 
+    def _calculate_feature_story_counts(self) -> Dict[str, int]:
+        """
+        Calculates the total number of stories per feature from the backlog.
+        """
+        counts = {}
+        for story in self.backlog:
+            fid = story.feature_id
+            counts[fid] = counts.get(fid, 0) + 1
+        return counts
+
+    def set_step_release_policy(
+        self,
+        phase: Phase,
+        policy: "ReleasePolicy" # type: ignore
+    ) -> None:
+        """
+        Sets the release policy for a specific process step.
+
+        Args:
+            phase: The phase of the step to configure
+            policy: The release policy (ReleasePolicy.CONTINUOUS or BATCH_FEATURE)
+        """
+        mapping = self._get_phase_step_mapping()
+        if phase in mapping:
+            step = mapping[phase]
+            step.release_policy = policy
+
     def start(self) -> None:
         """
         Starts the process simulation and runs it for the specified
         number of days.
         """
+        # Calculate feature counts before starting
+        feature_counts = self._calculate_feature_story_counts()
+        
+        # Propagate to all steps
+        self.spec_step.feature_story_counts = feature_counts
+        self.dev_step.feature_story_counts = feature_counts
+        self.test_step.feature_story_counts = feature_counts
+        self.rollout_step.feature_story_counts = feature_counts
+
         for day in range(1, self.simulation_days + 1):
             self.process_day(day)
 

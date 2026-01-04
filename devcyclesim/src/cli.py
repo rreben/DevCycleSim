@@ -42,6 +42,17 @@ from devcyclesim.src.visualization import plot_simulation_results
 @click.option("-v", "--verbose", is_flag=True, help="Detailed output")
 @click.option('-p', '--plot/--no-plot', default=True, help='Plot simulation results')
 @click.option('--highlight-feature', default=None, help='Feature ID to highlight in the plot')
+@click.option(
+    '--batch-phases',
+    default=None,
+    help=(
+        "Comma-separated list of phases (spec,dev,test) that should use "
+        "Batch Release policy. In Batch Release, a station waits until "
+        "ALL stories of a feature are completed before releasing them "
+        "to the next station. This simulates Waterfall-like behavior ("
+        "Gatekeeping). Example: --batch-phases spec,dev,test"
+    )
+)
 def run(
     duration,
     resource_plan,
@@ -54,6 +65,7 @@ def run(
     verbose,
     plot,
     highlight_feature,
+    batch_phases,
 ):
     """DevCycleSim - A simulation for development processes.
 
@@ -66,6 +78,28 @@ def run(
 
         # Create process
         process = Process(simulation_days=duration)
+        
+        # Configure Batch Phases
+        if batch_phases:
+            from devcyclesim.src.process_step import ReleasePolicy
+            
+            phases_map = {
+                'spec': Phase.SPEC,
+                'dev': Phase.DEV,
+                'test': Phase.TEST,
+                'rollout': Phase.ROLLOUT
+            }
+            
+            requested_phases = batch_phases.lower().split(',')
+            for p_name in requested_phases:
+                p_name = p_name.strip()
+                if p_name in phases_map:
+                    process.set_step_release_policy(
+                        phases_map[p_name],
+                        ReleasePolicy.BATCH_FEATURE
+                    )
+                else:
+                    click.echo(f"Warning: Unknown phase '{p_name}' in batch-phases. SQLipping.")
 
         # Process resource plans
         if resource_plans_file:
@@ -107,7 +141,7 @@ def run(
             except FileNotFoundError:
                 msg = f"Resource plans file not found: {resource_plans_file}"
                 raise ValueError(msg)
-
+                
         if resource_plan:
             for plan_str in resource_plan:
                 try:
