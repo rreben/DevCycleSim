@@ -1,0 +1,74 @@
+[
+    {
+        "id": "STORY-1",
+        "feature_id": "Feature-A",
+        "arrival_day": 1,
+        "tasks": [
+            {
+                "phase": "spec",
+                "count": 1,
+                "defect_discovery_phase": "test"
+            },
+            {
+                "phase": "dev",
+                "count": 2
+            },
+            {
+                "phase": "test",
+                "count": 1
+            },
+            {
+                "phase": "rollout",
+                "count": 1
+            }
+        ]
+    },
+    {
+        "id": "STORY-2",
+        "feature_id": "Feature-A",
+        "arrival_day": 1,
+        "tasks": [
+            {
+                "phase": "spec",
+                "count": 1
+            },
+            {
+                "phase": "dev",
+                "count": 2,
+                "defect_discovery_phase": "rollout"
+            },
+            {
+                "phase": "test",
+                "count": 1
+            },
+            {
+                "phase": "rollout",
+                "count": 1
+            }
+        ]
+    },
+    {
+        "id": "STORY-3",
+        "feature_id": "Feature-B",
+        "arrival_day": 5,
+        "tasks": [
+            {
+                "phase": "spec",
+                "count": 1
+            },
+            {
+                "phase": "dev",
+                "count": 1,
+                "defect_discovery_phase": "test"
+            },
+            {
+                "phase": "test",
+                "count": 1
+            },
+            {
+                "phase": "rollout",
+                "count": 1
+            }
+        ]
+    }
+]

@@ -53,6 +53,14 @@ from devcyclesim.src.visualization import plot_simulation_results
         "Gatekeeping). Example: --batch-phases spec,dev,test"
     )
 )
+@click.option(
+    '--rework-factor',
+    default=0.1,
+    help=(
+        "Factor for rework cost calculation. "
+        "Cost = Base + (Age * Factor). Default: 0.1"
+    )
+)
 def run(
     duration,
     resource_plan,
@@ -66,6 +74,7 @@ def run(
     plot,
     highlight_feature,
     batch_phases,
+    rework_factor,
 ):
     """DevCycleSim - A simulation for development processes.
 
@@ -99,7 +108,7 @@ def run(
                         ReleasePolicy.BATCH_FEATURE
                     )
                 else:
-                    click.echo(f"Warning: Unknown phase '{p_name}' in batch-phases. SQLipping.")
+                    click.echo(f"Warning: Unknown phase '{p_name}' in batch-phases. Skipping.")
 
         # Process resource plans
         if resource_plans_file:
@@ -186,9 +195,17 @@ def run(
                                 for task_entry in story_data["tasks"]:
                                     phase = Phase(task_entry["phase"])
                                     count = task_entry.get("count", 1)
-                                    task_list.extend(
-                                        [Task(phase=phase)
-                                         for _ in range(count)])
+                                    
+                                    # Optional: Defect Discovery Phase (triggers rework)
+                                    defect_phase_str = task_entry.get("defect_discovery_phase")
+                                    defect_phase = Phase(defect_phase_str) if defect_phase_str else None
+                                    
+                                    for _ in range(count):
+                                        t = Task(phase=phase)
+                                        # Apply defect property to the task(s)
+                                        t.defect_discovery_phase = defect_phase
+                                        task_list.append(t)
+                                        
                                 story = UserStory(
                                     story_id=story_data["id"],
                                     tasks=np.array(
@@ -197,7 +214,8 @@ def run(
                                         "arrival_day", 1),
                                     priority=story_data.get("priority", 1),
                                     feature_id=story_data.get(
-                                        "feature_id", "default_feature")
+                                        "feature_id", "default_feature"),
+                                    rework_factor=rework_factor
                                 )
                                 process.add(story)
                             else:
@@ -233,6 +251,7 @@ def run(
                         Phase.ROLLOUT: 1
                     }
                 )
+                story.rework_factor = rework_factor
                 process.add(story)
 
         if verbose:
@@ -280,12 +299,12 @@ def run(
             serializable_completion_dates = {}
             for story_id, dates in final_completion_dates.items():
                 completed = [
-                    (phase.name, day)
-                    for phase, day in dates["completed"]
+                    (phase.name, day, is_corr)
+                    for phase, day, is_corr in dates["completed"]
                 ]
                 pending = [
-                    (phase.name, day)
-                    for phase, day in dates["pending"]
+                    (phase.name, day, is_corr)
+                    for phase, day, is_corr in dates["pending"]
                 ]
                 serializable_completion_dates[story_id] = {
                     "completed": completed,
@@ -335,12 +354,14 @@ def run(
                     output += f"\nStory {story_id}:\n"
                     if dates["completed"]:
                         output += "  Completed Tasks:\n"
-                        for phase, day in dates["completed"]:
-                            output += f"    {phase.name}: Day {day}\n"
+                        for phase, day, is_corr in dates["completed"]:
+                            corr_str = " [Correction]" if is_corr else ""
+                            output += f"    {phase.name}: Day {day}{corr_str}\n"
                     if dates["pending"]:
                         output += "  Pending Tasks:\n"
-                        for phase, _ in dates["pending"]:
-                            output += f"    {phase.name}: Not completed\n"
+                        for phase, _, is_corr in dates["pending"]:
+                            corr_str = " [Correction]" if is_corr else ""
+                            output += f"    {phase.name}: Not completed{corr_str}\n"
 
         # Save or display output
         if output_file:

@@ -14,6 +14,9 @@ from .user_story import Phase
 def get_finished_tasks_per_day(
         statistics: List[ProcessStatistic]) -> List[int]:
     """Calculates the cumulative number of tasks in finished stories per day.
+    
+    For Burndown, we track VALUE (original tasks), not Effort (correction tasks).
+    So we use get_value_tasks_count().
 
     Args:
         statistics: List of ProcessStatistic objects
@@ -25,8 +28,9 @@ def get_finished_tasks_per_day(
 
     for stat in statistics:
         # Sum up tasks in all finished stories for this day
+        # Only count VALUE tasks for Burndown
         tasks_in_finished_stories = sum(
-            story.get_total_tasks()
+            story.get_value_tasks_count()
             for story in stat.finished_work
         )
         finished_tasks.append(tasks_in_finished_stories)
@@ -61,12 +65,13 @@ def plot_simulation_results(
         'ROLLOUT': [], 'ROLLOUT_Other': [],
         'Cumulated': []
     }
-
-    # Get total number of tasks from last day's data
+    
+    # Calculate Effort Spent vs Value
+    # Last day stats has 'tasks_finished_cumulated' which is essentially the Value sum of all finished stories
     last_day_stats = statistics[-1].get_daily_completion_stats()
-    total_tasks = last_day_stats['tasks_finished_cumulated']
+    total_value_tasks = last_day_stats['tasks_finished_cumulated']
 
-    # Calculate finished tasks per day
+    # Calculate finished tasks per day (Value-based)
     finished_tasks = get_finished_tasks_per_day(statistics)
 
     for stat in statistics:
@@ -90,7 +95,7 @@ def plot_simulation_results(
 
             # Check completions for this story on this day
             dates = stat.task_completion_dates[story_id]
-            for phase, day in dates["completed"]:
+            for phase, day, is_corr in dates["completed"]:
                 if day == stat.day:
                     if phase == Phase.SPEC:
                         counts[f'SPEC{suffix}'] += 1
@@ -113,6 +118,7 @@ def plot_simulation_results(
         data['TEST_Other'].append(counts['TEST_Other'])
         data['ROLLOUT'].append(counts['ROLLOUT'])
         data['ROLLOUT_Other'].append(counts['ROLLOUT_Other'])
+        # Cumulated tracks Effort (Total Tasks Done)
         data['Cumulated'].append(completion_data['tasks_completed_cumulated'])
 
     df = pd.DataFrame(data)
@@ -140,6 +146,14 @@ def plot_simulation_results(
         Phase.ROLLOUT: 'lightcoral'
     }
     
+    # Rework Colors (Pink/Red shades)
+    rework_colors = {
+        Phase.SPEC: '#E6E6FA',    # Lavender (Pale Pinkish)
+        Phase.DEV: '#FFB6C1',     # LightPink
+        Phase.TEST: '#FF69B4',    # HotPink
+        Phase.ROLLOUT: '#DC143C'  # Crimson
+    }
+    
     # Track y-position for each story
     y_pos = 0
     y_ticks = []
@@ -158,13 +172,14 @@ def plot_simulation_results(
         dates = final_stats.task_completion_dates[story_id]
         
         # Plot each finished task block
-        for phase, day in dates["completed"]:
-            color = phase_colors.get(phase, 'gray')
+        for phase, day, is_corr in dates["completed"]:
+            base_color = rework_colors.get(phase, 'red') if is_corr else phase_colors.get(phase, 'gray')
+            color = base_color
             alpha = 1.0 if is_target else 0.1
             
             # Plot a rectangle for the day
-            # (day-1 to day, height 0.8 centered at y_pos)
-            ax1.barh(y_pos, 1, left=day-1, height=0.8, 
+            # (day-0.5 to day+0.5, height 0.8 centered at y_pos)
+            ax1.barh(y_pos, 1, left=day-0.5, height=0.8, 
                     color=color, alpha=alpha, edgecolor='none')
             
         y_pos += 1
@@ -178,12 +193,16 @@ def plot_simulation_results(
     
     # Add simple legend for phases in Gantt
     from matplotlib.patches import Patch
-    legend_elements = [
-        Patch(facecolor=phase_colors[Phase.SPEC], label='SPEC'),
-        Patch(facecolor=phase_colors[Phase.DEV], label='DEV'),
-        Patch(facecolor=phase_colors[Phase.TEST], label='TEST'),
-        Patch(facecolor=phase_colors[Phase.ROLLOUT], label='ROLLOUT'),
-    ]
+    legend_elements = []
+    
+    # 1. Row: Normal Phases
+    for p in [Phase.SPEC, Phase.DEV, Phase.TEST, Phase.ROLLOUT]:
+        legend_elements.append(Patch(facecolor=phase_colors[p], label=p.name))
+
+    # 2. Row: Correction Phases
+    for p in [Phase.SPEC, Phase.DEV, Phase.TEST, Phase.ROLLOUT]:
+        legend_elements.append(Patch(facecolor=rework_colors[p], label=f"{p.name} (Corr)"))
+
     ax1.legend(handles=legend_elements, loc='upper right', ncol=4, fontsize='small')
 
 
@@ -194,35 +213,29 @@ def plot_simulation_results(
     num_days = len(statistics)
     heatmap_data = np.zeros((5, num_days))
     
+    # Prepare keys for daily_counts and wip_data
+    # We need: PHASE, PHASE_Corr, PHASE_Other, PHASE_Corr_Other
+    phases = [Phase.SPEC, Phase.DEV, Phase.TEST, Phase.ROLLOUT]
+    keys = []
+    for p in phases:
+        keys.append(p.name)
+        keys.append(f"{p.name}_Corr")
+        keys.append(f"{p.name}_Other")
+        keys.append(f"{p.name}_Corr_Other")
+
     # Initialize DataFrame data dict for Bottom Chart
-    wip_data = {
-        'Day': [],
-        'SPEC': [], 'SPEC_Other': [],
-        'DEV': [], 'DEV_Other': [],
-        'TEST': [], 'TEST_Other': [],
-        'ROLLOUT': [], 'ROLLOUT_Other': [],
-        'Cumulated': []
-    }
-    
+    wip_data = {'Day': [], 'Cumulated': []}
+    for k in keys:
+        wip_data[k] = []
+
     finished_tasks = get_finished_tasks_per_day(statistics)
 
     for i, stat in enumerate(statistics):
         # 1. Calculate Daily Phase Counts (Work Done)
-        # This logic sums the actual work steps performed this day
-        daily_counts = {
-            'SPEC': 0, 'SPEC_Other': 0,
-            'DEV': 0, 'DEV_Other': 0,
-            'TEST': 0, 'TEST_Other': 0,
-            'ROLLOUT': 0, 'ROLLOUT_Other': 0
-        }
+        daily_counts = {k: 0 for k in keys}
         
         # Aggregated counts for Heatmap (ignoring Feature split)
-        heatmap_counts = {
-            Phase.SPEC: 0,
-            Phase.DEV: 0,
-            Phase.TEST: 0,
-            Phase.ROLLOUT: 0
-        }
+        heatmap_counts = {p: 0 for p in phases}
         
         story_ids = stat.task_completion_dates.keys()
         for story_id in story_ids:
@@ -232,10 +245,13 @@ def plot_simulation_results(
             suffix = "" if is_target else "_Other"
 
             dates = stat.task_completion_dates[story_id]
-            for phase, day in dates["completed"]:
+            for phase, day, is_corr in dates["completed"]:
                 if day == stat.day:
                     # Update Bottom Chart Counts
-                    key = f"{phase.name}{suffix}"
+                    # Construct key: PHASE[_Corr][_Other]
+                    corr_part = "_Corr" if is_corr else ""
+                    key = f"{phase.name}{corr_part}{suffix}"
+                    
                     if key in daily_counts:
                         daily_counts[key] += 1
                     
@@ -257,7 +273,7 @@ def plot_simulation_results(
                     stat.test_stats.capacity + stat.rollout_stats.capacity)
         u_total = calc_util(total_processed, total_cap)
         
-        # Remember: Row 0 is Top (imshow). We want Total at Top.
+        # Row 0 is Top
         heatmap_data[0, i] = u_total
         heatmap_data[1, i] = u_spec
         heatmap_data[2, i] = u_dev
@@ -266,84 +282,102 @@ def plot_simulation_results(
 
         # 3. Fill WIP DataFrame Data
         completion_data = stat.get_daily_completion_stats()
-        
         wip_data['Day'].append(stat.day)
-        wip_data['SPEC'].append(daily_counts['SPEC'])
-        wip_data['SPEC_Other'].append(daily_counts['SPEC_Other'])
-        wip_data['DEV'].append(daily_counts['DEV'])
-        wip_data['DEV_Other'].append(daily_counts['DEV_Other'])
-        wip_data['TEST'].append(daily_counts['TEST'])
-        wip_data['TEST_Other'].append(daily_counts['TEST_Other'])
-        wip_data['ROLLOUT'].append(daily_counts['ROLLOUT'])
-        wip_data['ROLLOUT_Other'].append(daily_counts['ROLLOUT_Other'])
         wip_data['Cumulated'].append(completion_data['tasks_completed_cumulated'])
+        for k in keys:
+            wip_data[k].append(daily_counts[k])
 
     # --- PLOTTING HEATMAP (Ax2) ---
     
     # Define Colors
-    # Rules: < 0.6: Red, 0.6-0.8: Yellow, 0.8-1.0: LightGreen, >= 1.0: Green
     cmap = ListedColormap(['#ffcccc', '#ffeb99', '#99ff99', '#33cc33'])
-    # Boundaries
     bounds = [0.0, 0.6, 0.8, 1.0, 10.0] 
     norm = BoundaryNorm(bounds, cmap.N)
     
-    # Plot Heatmap
     im = ax2.imshow(heatmap_data, cmap=cmap, norm=norm, aspect='auto', interpolation='nearest',
                    extent=[statistics[0].day - 0.5, statistics[-1].day + 0.5, 4.5, -0.5])
     
-    # Add white separators between rows
-    # Rows are centered at 0, 1, 2, 3, 4. Boundaries are at 0.5, 1.5, 2.5, 3.5.
     for y in [0.5, 1.5, 2.5, 3.5]:
         ax2.axhline(y=y, color='white', linewidth=3, zorder=10)
     
     ax2.set_yticks(np.arange(5))
-
     ax2.set_yticklabels(["Total", "SPEC", "DEV", "TEST", "ROLLOUT"])
     ax2.set_title("Resource Efficiency (Utilization)")
-    ax2.grid(False) # Disable default grid, using custom separators
+    ax2.grid(False)
 
     # --- PLOTTING WIP CHART (Ax3) ---
     df = pd.DataFrame(wip_data)
 
-    # Convert counts to stacked bars
-    stack_order = [
-        ('SPEC_Other', 'SPEC (Other)'), ('SPEC', 'SPEC'),
-        ('DEV_Other', 'DEV (Other)'), ('DEV', 'DEV'),
-        ('TEST_Other', 'TEST (Other)'), ('TEST', 'TEST'),
-        ('ROLLOUT_Other', 'ROLLOUT (Other)'), ('ROLLOUT', 'ROLLOUT')
-    ]
+    # Stack Order: Other (Bottom) -> Normal -> Correction (Top)
+    # Order: 
+    # SPEC_Other, SPEC, SPEC_Corr_Other, SPEC_Corr
+    # ...
+    stack_order = []
+    for p in phases:
+        name = p.name
+        stack_order.append( (f"{name}_Other", f"{name} (Other)") )
+        stack_order.append( (f"{name}", f"{name}") )
+        stack_order.append( (f"{name}_Corr_Other", f"{name} (Corr Other)") )
+        stack_order.append( (f"{name}_Corr", f"{name} (Corr)") )
     
-    colors = {
-        'SPEC': 'lightblue', 'SPEC_Other': 'lightblue',
-        'DEV': 'khaki', 'DEV_Other': 'khaki',
-        'TEST': 'lightgreen', 'TEST_Other': 'lightgreen',
-        'ROLLOUT': 'lightcoral', 'ROLLOUT_Other': 'lightcoral'
-    }
+    # Define colors for all keys
+    colors = {}
+    for p in phases:
+        name = p.name
+        base_col = phase_colors[p]
+        corr_col = rework_colors[p]
+        
+        colors[name] = base_col
+        colors[f"{name}_Other"] = base_col
+        colors[f"{name}_Corr"] = corr_col
+        colors[f"{name}_Corr_Other"] = corr_col
 
     bottom = pd.Series([0] * len(df))
     
-    # Store handles for legend
     legend_handles = {}
 
     for col, label in stack_order:
         if highlight_feature_id is None and 'Other' in col:
             continue
 
+        # Logic to skip legend entries for 'Other' or duplicate Correction entries?
+        # We want explicit legend for main phases and maybe ONE generic "Correction" 
+        # or specific correction phases if we want full consistency.
+        # User asked for "consistent colors".
+        # Let's label them.
+        
+        # Determine alpha
+        alpha = 1.0
+        if 'Other' in col:
+            alpha = 0.2
+            
+        # Determine label for Legend
+        # We only want basic labels in legend to avoid clutter?
+        # "SPEC", "DEV" ... and "Correction" (generic) or "SPEC (Corr)"?
+        # User: "Farben für das Rework ... nicht auch konsistent verwendet"
+        # Let's allow specific coloring.
+        
+        draw_label = None
+        if 'Other' not in col:
+            draw_label = label
+
         bars = ax3.bar(
             df['Day'], df[col],
             bottom=bottom,
-            label=label if 'Other' not in col else None,
+            label=draw_label,
             color=colors[col],
-            alpha=1.0 if 'Other' not in col else 0.2, # Stronger contrast: 1.0 vs 0.2
+            alpha=alpha,
             width=1.0
         )
         bottom += df[col]
         
+        # Collect handles for cleaner custom legend
+        # We only care about main phases + corrections
         if 'Other' not in col:
             legend_handles[col] = bars
 
     ax3.set_xlabel('Simulation Day')
-    ax3.set_ylabel('Active Tasks (WIP)')
+    ax3.set_ylabel('Resources at work')
     ax3.grid(True, axis='y', alpha=0.3)
     ax3.set_title('Work In Progress (WIP)')
     
@@ -351,16 +385,16 @@ def plot_simulation_results(
     
     ax4 = ax3.twinx()
     
-    # 1. Tasks Completed
+    # 1. Tasks Completed (EFFORT SPENT)
     line1, = ax4.plot(df['Day'], df['Cumulated'], color='tab:blue', linewidth=2,
-             label='Tasks completed')
+             label='Effort Spent')
              
-    # 2. Remaining Tasks (Burndown)
-    remaining_tasks = [total_tasks - ft for ft in finished_tasks]
+    # 2. Remaining Tasks (Burndown of VALUE)
+    remaining_tasks = [total_value_tasks - ft for ft in finished_tasks]
     line2, = ax4.plot(
         df['Day'], remaining_tasks,
         color='red', linewidth=2,
-        label='Burndown (Stories finished)'
+        label='Burndown (Value)'
     )
     
     # 3. Work in Progress
@@ -379,26 +413,49 @@ def plot_simulation_results(
              
     ax4.set_ylabel('Cumulative Tasks / WIP')
     
-    # Combined Legend for Ax3/Ax4
-    handles = [
-        legend_elements[0], legend_elements[1], # SPEC, DEV
-        legend_elements[2], legend_elements[3], # TEST, ROLLOUT
-        line1, line2, line3
-    ]
-    labels = [
-        'SPEC', 'DEV',
-        'TEST', 'ROLLOUT',
-        'Completed', 'Burndown', 'WIP'
-    ]
+    # Combined Legend
+    # Top Row: Normal Phases
+    # Bottom Row: Correction Phases?
+    # Lines
     
-    ax3.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, -0.2),
-              ncol=4)
+    from matplotlib.lines import Line2D
+    
+    custom_handles = []
+    custom_labels = []
+    
+    # row 1: Normal Phases
+    for p in phases:
+        custom_handles.append(Patch(facecolor=phase_colors[p], label=p.name))
+        custom_labels.append(p.name)
+        
+    # row 2: Correction Phases
+    for p in phases:
+        custom_handles.append(Patch(facecolor=rework_colors[p], label=f"{p.name} (Corr)"))
+        custom_labels.append(f"{p.name} (Corr)")
+        
+    # row 3: Lines
+    custom_handles.extend([line1, line2, line3])
+    custom_labels.extend(['Effort', 'Value', 'WIP'])
+    
+    # 4 columns? 4 phases...
+    # Layout:
+    # S, D, T, R
+    # Sc, Dc, Tc, Rc
+    # Eff, Val, WIP
+    
+    ax3.legend(custom_handles, custom_labels, loc='upper center', bbox_to_anchor=(0.5, -0.25),
+              ncol=4, fontsize='small')
     
     
     # --- SCROLLABLE WINDOW ---
     
     try:
         import tkinter as tk
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+        
+        root = tk.Tk()
+        # ... rest of the function remains same ...
         from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
         from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 

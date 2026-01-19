@@ -19,15 +19,15 @@ def test_get_daily_completion_stats():
     # Story 3: TEST done on day 4 (not today)
     stat.task_completion_dates = {
         "STORY-1": {
-            "completed": [(Phase.SPEC, 5)],
+            "completed": [(Phase.SPEC, 5, False)],
             "pending": []
         },
         "STORY-2": {
-            "completed": [(Phase.SPEC, 3), (Phase.DEV, 5)],
+            "completed": [(Phase.SPEC, 3, False), (Phase.DEV, 5, False)],
             "pending": []
         },
         "STORY-3": {
-            "completed": [(Phase.SPEC, 2), (Phase.DEV, 3), (Phase.TEST, 4)],
+            "completed": [(Phase.SPEC, 2, False), (Phase.DEV, 3, False), (Phase.TEST, 4, False)],
             "pending": []
         }
     }

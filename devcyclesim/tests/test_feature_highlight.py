@@ -68,8 +68,8 @@ def test_plot_simulation_results_splits_data():
     # S1 (FeatureA) completed SPEC on day 1
     # S2 (FeatureB) completed SPEC on day 1
     stat.task_completion_dates = {
-        "S1": {"completed": [(Phase.SPEC, 1)], "pending": []},
-        "S2": {"completed": [(Phase.SPEC, 1)], "pending": []}
+        "S1": {"completed": [(Phase.SPEC, 1, False)], "pending": []},
+        "S2": {"completed": [(Phase.SPEC, 1, False)], "pending": []}
     }
     # Mock cumulative stats
     stat.get_daily_completion_stats.return_value = {

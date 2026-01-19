@@ -65,7 +65,7 @@ class ProcessStatistic:
     test_stats: StepStatistic
     rollout_stats: StepStatistic
     task_completion_dates: (
-        "dict[str, dict[str, list[tuple[Phase, int]]]]"
+        "dict[str, dict[str, list[tuple[Phase, int, bool]]]]"
     ) = field(default_factory=dict)
     feature_stats: "dict[str, dict[str, int]]" = field(default_factory=dict)
     story_feature_map: "dict[str, str]" = field(default_factory=dict)
@@ -219,12 +219,14 @@ class ProcessStatistic:
                 print(f"\nStory {story_id}:")
                 if completion_info["completed"]:
                     print("  Completed Tasks:")
-                    for phase, day in completion_info["completed"]:
-                        print(f"    {phase.name}: Day {day}")
+                    for phase, day, is_corr in completion_info["completed"]:
+                        corr_str = " [Correction]" if is_corr else ""
+                        print(f"    {phase.name}: Day {day}{corr_str}")
                 if completion_info["pending"]:
                     print("  Pending Tasks:")
-                    for phase, _ in completion_info["pending"]:
-                        print(f"    {phase.name}: Not completed")
+                    for phase, _, is_corr in completion_info["pending"]:
+                        corr_str = " [Correction]" if is_corr else ""
+                        print(f"    {phase.name}: Not completed{corr_str}")
 
     def get_csv_header(self) -> str:
         """
@@ -302,12 +304,12 @@ class ProcessStatistic:
             # Check if any task was completed on this day
             completed_today = any(
                 day == self.day
-                for _, day in dates["completed"]
+                for _, day, _ in dates["completed"]
             )
             # Check if story has any completed tasks before or on this day
             has_started = any(
                 day <= self.day
-                for _, day in dates["completed"]
+                for _, day, _ in dates["completed"]
             )
             # Output:
             # - "1" if a task was completed today
@@ -382,7 +384,7 @@ class ProcessStatistic:
             dates = self.task_completion_dates[story_id]
             # Check which task was completed on this day
             task_completed_today = None
-            for phase, day in dates["completed"]:
+            for phase, day, _ in dates["completed"]:
                 if day == self.day:
                     task_completed_today = phase
                     break
@@ -414,24 +416,26 @@ class ProcessStatistic:
         ]
 
         # Count all completed tasks (including partially finished stories)
+        # Effort Spent = All completed tasks
         tasks_completed = 0
         for dates in self.task_completion_dates.values():
             story_tasks = dates["completed"]
             if story_tasks:
-                last_task_day = max(day for _, day in story_tasks)
+                last_task_day = max(day for _, day, _ in story_tasks)
                 if last_task_day <= self.day:
                     tasks_completed += len(story_tasks)
 
-        # Count tasks of finished stories by getting total tasks directly
+        # Count tasks of finished stories (Burndown / Value)
+        # Value = Original non-correction tasks of completed stories
         tasks_finished = sum(
-            story.get_total_tasks()
+            story.get_value_tasks_count()
             for story in self.finished_work
         )
 
         summary_counts = [
             str(self.finished_work_count).rjust(3),  # 3-stellig für Stories
-            str(tasks_completed).rjust(4),  # 4-stellig für Tasks
-            str(tasks_finished).rjust(4)  # 4-stellig für Tasks
+            str(tasks_completed).rjust(4),  # 4-stellig für Tasks (Effort)
+            str(tasks_finished).rjust(4)  # 4-stellig für Value (Burndown)
         ]
 
         # Combine all parts
@@ -452,8 +456,8 @@ class ProcessStatistic:
                 - dev_completed: int
                 - test_completed: int
                 - rollout_completed: int
-                - tasks_completed_cumulated: int
-                - tasks_finished_cumulated: int
+                - tasks_completed_cumulated: int (Effort)
+                - tasks_finished_cumulated: int (Value/Burndown)
         """
         story_ids = sorted(self.task_completion_dates.keys())
         completions = []
@@ -462,7 +466,7 @@ class ProcessStatistic:
         for story_id in story_ids:
             dates = self.task_completion_dates[story_id]
             task_completed_today = None
-            for phase, day in dates["completed"]:
+            for phase, day, _ in dates["completed"]:
                 if day == self.day:
                     task_completed_today = phase
                     break
@@ -476,18 +480,18 @@ class ProcessStatistic:
         test_completed = completions.count(Phase.TEST)
         rollout_completed = completions.count(Phase.ROLLOUT)
 
-        # Count all completed tasks (including partially finished stories)
+        # Count all completed tasks (Effort)
         tasks_completed = 0
         for dates in self.task_completion_dates.values():
             story_tasks = dates["completed"]
             if story_tasks:
-                last_task_day = max(day for _, day in story_tasks)
+                last_task_day = max(day for _, day, _ in story_tasks)
                 if last_task_day <= self.day:
                     tasks_completed += len(story_tasks)
 
-        # Count tasks of finished stories
+        # Count Valued Tasks of finished stories (Burndown)
         tasks_finished = sum(
-            story.get_total_tasks()
+            story.get_value_tasks_count()
             for story in self.finished_work
         )
 

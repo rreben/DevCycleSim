@@ -1,0 +1,26 @@
+[
+    {
+        "id": "STORY-1",
+        "feature_id": "Feature-A",
+        "arrival_day": 1,
+        "tasks": [
+            {
+                "phase": "spec",
+                "count": 1,
+                "defect_discovery_phase": "test"
+            },
+            {
+                "phase": "dev",
+                "count": 30
+            },
+            {
+                "phase": "test",
+                "count": 1
+            },
+            {
+                "phase": "rollout",
+                "count": 1
+            }
+        ]
+    }
+]

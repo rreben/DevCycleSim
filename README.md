@@ -466,6 +466,7 @@ Starting with the current version, DevCycleSim supports a flexible user story fo
   - `count`: How many times this phase is performed consecutively (e.g., 3 development days).
 - `arrival_day`: The day the story enters the process.
 - `priority`: Priority of the story.
+- `defect_discovery_phase`: (Optional) Can be set on a task to simulate a latent defect. Value is the phase name (e.g., `test`) where the defect originating in this task will be discovered. Discovering a defect triggers the insertion of rework tasks.
 
 #### Flexible order for error and rework modeling
 
